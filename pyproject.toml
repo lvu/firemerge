@@ -1,9 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
+requires = ["setuptools>=61.0"]
 
 [project]
-name = "FireMerge"
+name = "firemerge"
 description = "Firefly merge/import GUI"
 version = "0.1.0"
 readme = "README.md"
@@ -12,6 +12,12 @@ dependencies = [
     "aiohttp ~= 3.10.0",
     "python-dotenv ~= 1.0.0",
     "tomlkit ~= 0.13.0",
+    "pydantic ~= 2.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "mypy==1.11",
 ]
 
 [tool.setuptools]
@@ -20,3 +26,8 @@ packages = ["firemerge"]
 [project.scripts]
 firemerge-scrape = "firemerge.scrape:main"
 firemerge = "firemerge.web:main"
+
+[tool.mypy]
+plugins = [
+  "pydantic.mypy"
+]

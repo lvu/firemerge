@@ -4,10 +4,7 @@ from uuid import uuid4
 
 from aiohttp import ClientResponseError, ClientSession
 
-
-class Account(NamedTuple):
-    id: int
-    name: str
+from firemerge.model import Account
 
 
 class FireflyClient:
@@ -52,6 +49,6 @@ class FireflyClient:
         if resp["meta"]["pagination"]["current_page"] < resp["meta"]["pagination"]["total_pages"]:
             raise RuntimeError("Paginantion not supported yet")
         return [
-            Account(row["id"], row["attributes"]["name"])
+            Account(id=row["id"], name=row["attributes"]["name"])
             for row in resp["data"]
         ]

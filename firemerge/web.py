@@ -7,7 +7,7 @@ import tomlkit
 from aiohttp import web
 from dotenv import load_dotenv
 
-from .firefly_client import FireflyClient
+from firemerge.firefly_client import FireflyClient
 
 
 PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
@@ -28,7 +28,7 @@ async def statement(request: web.Request) -> web.Response:
 
 async def accounts(request: web.Request) -> web.Response:
     accounts = await request.app[FIREFLY_CLIENT].get_asset_accounts()
-    return web.json_response([acc._asdict() for acc in accounts])
+    return web.json_response([acc.model_dump() for acc in accounts])
 
 
 async def config(request: web.Request) -> web.Response:
