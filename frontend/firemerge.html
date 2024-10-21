@@ -4,26 +4,89 @@
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/primevue/umd/primevue.min.js"></script>
   <script src="https://unpkg.com/@primevue/themes/umd/aura.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+
+  <style>
+    html {
+      font-size: 14px;
+      font-family: 'Inter var', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+        Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol';
+      font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    }
+  </style>
 </head>
 
 <body>
   <script src="./firemerge.js"></script>
   <div id="app">
-    <Tabs value="0">
-      <TabList>
-        <Tab value="0">Data</Tab>
-        <Tab value="1">Config</Tab>
-      </TabList>
-      <TabPanels>
-        <TabPanel value="0">
+    <Dropdown v-model="assetAccount" :options="getAccounts(['asset'])" option-label="name" placeholder="Asset account"></Dropdown>
+    <VButton label="Load" @click="loadTransactions" :disabled="!assetAccount"></VButton>
 
-        </TabPanel>
-        <TabPanel value="1">
-          <Dropdown v-model="config.assetAccount" :options="accounts" option-label="name" placeholder="Asset account"></Dropdown>
-          <VButton label="Save" @click="saveConfig"></VButton>
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
+    <div v-if="!transactions.length" class="space-y-4 bg-slate-50">
+      <DataView :value="statementTransactions">
+        <template #list="slotProps">
+          <div>
+            <h1 class="text-2xl font-bold">Statement preview</h1>
+            <div v-for="(item, index) in slotProps.items" :key="index">
+              <div class="bg-white shadow rounded m-6 p-2 flex">
+                <div class="flex flex-col place-content-center w-1/3">
+                  <div class="text-xl font-bold">{{item.name}}</div>
+                  <div class="font-bold">{{item.amount}}</div>
+                  <div>{{item.date}}</div>
+                </div>
+                <div class="flex flex-col w-2/3">
+                  <table class="border-collapse">
+                    <tr v-for="(value, key) in item.meta">
+                      <td class="font-bold w-1/3">{{key}}</td>
+                      <td>&nbsp;{{value}}</td>
+                    </tr>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </DataView>
+    </div>
+
+    <div v-if="transactions.length" class="space-y-4 bg-slate-50">
+      <DataView :value="transactions">
+        <template #list="slotProps">
+          <div>
+            <div v-for="(item, index) in slotProps.items" :key="index">
+              <div class="bg-white shadow rounded m-6 p-2">
+                <div class="basis-full">
+                  <SelectButton v-model="item.type" :options="transactionTypes" option-label="label" option-value="id"></SelectButton>
+                </div>
+                <div class="flex flex-row">
+                  <div class="flex flex-col place-content-center w-1/3">
+                    <InputText type="text" v-model="item.description" size="large"></InputText>
+                    <Dropdown v-model="item.category" :options="categories" option-label="name" filter show-clear></Dropdown>
+                    <Dropdown v-model="item.account" :options="getAccounts(getAccountTypes(item.type))" option-label="name" data-key="id" filter show-clear></Dropdown>
+                    <InputNumber v-model="item.amount" :min-fraction-digits="2" :max-fraction-digits="2"></InputNumber>
+                    <div class="flex flex-row">
+                      <div class="flex flex-col w-2/3">
+                        <InputNumber v-model="item.foreign_amount" :min-fraction-digits="2" :max-fraction-digits="2"></InputNumber>
+                      </div>
+                      <div class="flex flex-col w-1/3">
+                        <Dropdown v-model="item.foreign_currency" :options="currencies" option-label="code" data-key="id" filter show-clear></Dropdown>
+                      </div>
+                    </div>
+                    <DatePicker v-model="item.date" show-time hour-format="24" fuild></DatePicker>
+                  </div>
+                  <div class="flex flex-col w-2/3">
+                    <Text-Area v-model="item.notes" class="w-full h-full"></Text-Area>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </DataView>
+    </div>
+
   </div>
 </body>
 

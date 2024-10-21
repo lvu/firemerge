@@ -1,10 +1,11 @@
 from datetime import date
-from typing import NamedTuple, Optional
+from itertools import count
+from typing import NamedTuple, Optional, AsyncIterable
 from uuid import uuid4
 
 from aiohttp import ClientResponseError, ClientSession
 
-from firemerge.model import Account
+from firemerge.model import Account, Category, Currency, Transaction
 
 
 class FireflyClient:
@@ -41,14 +42,33 @@ class FireflyClient:
                 )
             return await resp.json()
 
-    async def get_transactions(self, account_id: int, start: date) -> list:
-        pass
+    async def _paging_get(self, path: str, params: Optional[dict] = None) -> AsyncIterable[dict]:
+        params = params or {}
+        page = 1
+        for page in count(1):
+            resp = await self._request(path, {**params, "page": page})
+            for row in resp["data"]:
+                yield row
+            if resp["meta"]["pagination"]["total_pages"] <= page:
+                break
 
-    async def get_asset_accounts(self) -> list[Account]:
-        resp = await self._request("v1/accounts", {"type": "asset"})
-        if resp["meta"]["pagination"]["current_page"] < resp["meta"]["pagination"]["total_pages"]:
-            raise RuntimeError("Paginantion not supported yet")
-        return [
-            Account(id=row["id"], name=row["attributes"]["name"])
-            for row in resp["data"]
-        ]
+    async def get_transactions(self, account_id: int, start: date) -> AsyncIterable[Transaction]:
+        async for row in self._paging_get(f"v1/accounts/{account_id}/transactions", {"start": start.strftime("%Y-%m-%d")}):
+            for trans in row["attributes"]["transactions"]:
+                yield Transaction.model_validate({**trans, "id": row["id"]})
+
+    async def get_accounts(self) -> AsyncIterable[Account]:
+        async for row in self._paging_get("v1/accounts", {"limit": 1000}):
+            yield Account.model_validate({
+                "id": row["id"],
+                "type": row["attributes"]["type"],
+                "name": row["attributes"]["name"],
+            })
+
+    async def get_categories(self) -> AsyncIterable[Category]:
+        async for row in self._paging_get("v1/categories"):
+            yield Category(id=row["id"], name=row["attributes"]["name"])
+
+    async def get_currencies(self) -> AsyncIterable[Currency]:
+        async for row in self._paging_get("v1/currencies"):
+            yield Currency.model_validate({**row["attributes"], "id": row["id"]})
