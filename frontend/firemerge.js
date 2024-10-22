@@ -10,6 +10,7 @@ onload = (event) => {
                 accounts: ref([]),
                 categories: ref([]),
                 currencies: ref([]),
+                descriptions: ref([]),
                 inProgress: ref(false),
                 transactionTypes: [
                     {id: "withdrawal", label: "Withdrawal"},
@@ -30,7 +31,6 @@ onload = (event) => {
                     if (!response.ok) {
                         throw new Error(`${response.status} ${response.statusText}: ${await response.text()}`);
                     }
-                    this.toast.add({ severity: 'success', summary: 'Loaded', detail: path, life: 3000 });
                     return await response.json();
                 } catch (error) {
                     this.toast.add({ severity: 'error', summary: 'Error', detail: error, life: 5000 });
@@ -49,9 +49,14 @@ onload = (event) => {
                     this.categories = await this.fetch('/categories');
                     this.currencies = await this.fetch('/currencies');
                     await this.loadAccounts();
+                    this.toast.add({ severity: 'success', summary: 'Success', detail: "Static data loaded", life: 3000 });
                  } finally {
                     this.inProgress = false;
                  }
+            },
+            async searchDescriptions(e) {
+                console.log(e);
+                this.descriptions = await this.fetch("/descriptions", {"query": e.query, "account_id": this.assetAccount.id});
             },
             async loadTransactions() {
                 this.inProgress = true;
@@ -59,6 +64,7 @@ onload = (event) => {
                     this.transactions = (
                         await this.fetch('/transactions', {"account_id": this.assetAccount.id})
                     ).map(this.decodeTransaction);
+                    this.toast.add({ severity: 'success', summary: 'Success', detail: "Transactions loaded", life: 3000 });
                 } finally {
                     this.inProgress = false;
                 }
@@ -176,6 +182,7 @@ onload = (event) => {
         },
     });
     app.use(PrimeVue.ToastService);
+    app.component('autocomplete', PrimeVue.AutoComplete);
     app.component('dropdown', PrimeVue.Select);
     app.component('vbutton', PrimeVue.Button);
     app.component('dataview', PrimeVue.DataView);

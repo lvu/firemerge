@@ -6,6 +6,7 @@ from typing import Iterable
 
 from aiohttp import web
 from dotenv import load_dotenv
+from thefuzz.process import extract
 
 from firemerge.firefly_client import FireflyClient
 from firemerge.merge import merge_transactions
@@ -55,14 +56,9 @@ async def transactions(request: web.Request) -> web.Response:
     account_id = int(request.query["account_id"])
     account = next(acc for acc in request.app[ACCOUNTS] if acc.id == account_id)
     account_currency = next(curr for curr in request.app[CURRENCIES] if curr.id == account.currency_id)
-    if account_id not in request.app[TRANSACTIONS]:
-        request.app[TRANSACTIONS][account_id] = [
-            tr async for tr in
-            request.app[FIREFLY_CLIENT].get_transactions(account_id, datetime.now() - timedelta(days=365))
-        ]
     return web.json_response([
         tr.model_dump(mode="json") for tr in merge_transactions(
-            request.app[TRANSACTIONS][account_id], request.app[STATEMENT], request.app[CURRENCIES], account_currency
+            (await _get_transactions(request.app, account_id)), request.app[STATEMENT], request.app[CURRENCIES], account_currency
         )
     ])
 
@@ -73,7 +69,7 @@ async def store_transaction(request: web.Request) -> web.Response:
     transaction = Transaction.model_validate(data["transaction"])
     new_transaction = await request.app[FIREFLY_CLIENT].store_transaction(transaction)
 
-    app_transactions = request.app[TRANSACTIONS][account_id]
+    app_transactions = await _get_transactions(request.app, account_id)
     if transaction.id is None:
         app_transactions.append(new_transaction)
     else:
@@ -90,6 +86,25 @@ async def store_transaction(request: web.Request) -> web.Response:
         request.app[ACCOUNTS].append(await request.app[FIREFLY_CLIENT].get_account(new_acc_id))
 
     return web.json_response(new_transaction.model_dump(mode="json"))
+
+
+async def search_descritions(request: web.Request) -> web.Response:
+    account_id = int(request.query["account_id"])
+    query = request.query["query"]
+    app_transactions = await _get_transactions(request.app, account_id)
+    descriptions = {tr.description for tr in app_transactions}
+    result = extract(query, descriptions)
+    return web.json_response([choice for (choice, score) in result])
+
+
+
+async def _get_transactions(app: web.Application, account_id: int) -> list[Transaction]:
+    if account_id not in app[TRANSACTIONS]:
+        app[TRANSACTIONS][account_id] = [
+            tr async for tr in
+            app[FIREFLY_CLIENT].get_transactions(account_id, datetime.now() - timedelta(days=365))
+        ]
+    return app[TRANSACTIONS][account_id]
 
 
 def read_statement() -> Iterable[StatementTransaction]:
@@ -120,6 +135,7 @@ def main():
         web.get('/accounts', accounts),
         web.get('/categories', categories),
         web.get('/currencies', currencies),
+        web.get('/descriptions', search_descritions),
     ])
     app.on_startup.append(load_refs)
     web.run_app(app)
