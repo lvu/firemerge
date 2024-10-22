@@ -12,7 +12,7 @@ def get_notes(st: StatementTransaction) -> str:
     )
 
 
-def best_match(tranactions: list[Transaction], st: StatementTransaction) -> Optional[int]:
+def best_match(tranactions: list[Transaction], st: StatementTransaction) -> Optional[Transaction]:
     for meta_field in [
         "Transaction ID",
         "Recipient",
@@ -20,16 +20,16 @@ def best_match(tranactions: list[Transaction], st: StatementTransaction) -> Opti
         "Description",
     ]:
         if (value := st.meta.get(meta_field)) is not None:
-            for idx, tr in enumerate(tranactions):
+            for tr in tranactions:
                 if (tr.notes and value in tr.notes) or value in tr.description:
-                    return idx
+                    return tr
     return None
 
 
 def match_single_transaction(tranactions: list[Transaction], st: StatementTransaction) -> Optional[Transaction]:
     candidates = [tr for tr in tranactions if abs(tr.amount) == abs(st.amount) and abs(tr.date - st.date) < timedelta(days=1)]
     if (res := best_match(candidates, st)) is not None:
-        return candidates[res]
+        return res
     return candidates[0] if candidates else None
 
 
@@ -71,6 +71,7 @@ def merge_transactions(
         transactions: list[Transaction], statement: list[StatementTransaction],
         currencies: list[Currency], account_currency: Currency
     ) -> list[Transaction]:
+    transactions = transactions[:]
     result: list[Transaction] = []
     transactions.sort(key=lambda tr: tr.date, reverse=True)
     for st in statement:
@@ -85,8 +86,7 @@ def merge_transactions(
             result.append(tr)
         else:
             tr = statement_to_transaction(st, currencies, account_currency)
-            if (source_tr_idx := best_match(transactions, st)) is not None:
-                source_tr = transactions[source_tr_idx]
+            if (source_tr := best_match(transactions, st)) is not None:
                 tr.state = TransactionState.Enriched
                 tr.type = source_tr.type
                 tr.description = source_tr.description

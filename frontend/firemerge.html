@@ -21,79 +21,89 @@
 <body>
   <script src="./firemerge.js"></script>
   <div id="app">
-    <div class="flex items-center space-x-4 m-8">
-      <Dropdown v-model="assetAccount" :options="getAccounts(['asset'])" option-label="name" placeholder="Asset account"></Dropdown>
-      <VButton label="Load" @click="loadTransactions" :disabled="!assetAccount"></VButton>
-      <VButton label="Store" @click="storeTransactions" :disabled="!assetAccount || !transactions.length"></VButton>
-    </div>
+    <Toast></Toast>
+    <BlockUI :blocked="inProgress">
+      <div v-if="inProgress" class="absolute inset-0 flex items-center justify-center">
+        <ProgressSpinner></ProgressSpinner>
+      </div>
+      <div class="flex items-center space-x-4 m-8">
+        <Dropdown v-model="assetAccount" :options="getAccounts(['asset'])" option-label="name" placeholder="Asset account"></Dropdown>
+        <VButton label="Load" @click="loadTransactions" :disabled="!assetAccount"></VButton>
+      </div>
 
-    <div v-if="!transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
-      <DataView :value="statementTransactions">
-        <template #list="slotProps">
-          <div>
-            <h1 class="text-2xl font-bold">Statement preview</h1>
-            <div v-for="(item, index) in slotProps.items" :key="index">
-              <div class="bg-white shadow rounded m-6 p-2 flex">
-                <div class="flex flex-col place-content-center w-1/3">
-                  <div class="text-xl font-bold">{{item.name}}</div>
-                  <div class="font-bold">{{item.amount}}</div>
-                  <div>{{item.date}}</div>
-                </div>
-                <div class="flex flex-col w-2/3">
-                  <table class="border-collapse">
-                    <tr v-for="(value, key) in item.meta">
-                      <td class="font-bold w-1/3">{{key}}</td>
-                      <td>&nbsp;{{value}}</td>
-                    </tr>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-      </DataView>
-    </div>
-
-    <div v-if="transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
-      <DataView :value="transactions">
-        <template #list="slotProps">
-          <div>
-            <div v-for="(item, index) in slotProps.items" :key="index">
-              <div class="bg-white shadow rounded m-6 p-2">
-                <div class="flex items-center space-x-4 mb-2">
-                  <ToggleSwitch v-model="item.active"></ToggleSwitch>
-                  <span :class="getStateClasses(item.state)">{{item.state}}</span>
-                </div>
-                <div class="basis-full">
-                  <SelectButton v-model="item.type" :options="transactionTypes" option-label="label" option-value="id"></SelectButton>
-                </div>
-                <div class="flex flex-row">
+      <div v-if="!transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
+        <DataView :value="statementTransactions">
+          <template #list="slotProps">
+            <div>
+              <h1 class="text-2xl font-bold">Statement preview</h1>
+              <div v-for="(item, index) in slotProps.items" :key="index">
+                <div class="bg-white shadow rounded m-6 p-2 flex">
                   <div class="flex flex-col place-content-center w-1/3">
-                    <InputText type="text" v-model="item.description" size="large"></InputText>
-                    <Dropdown v-model="item.category" :options="categories" option-label="name" filter show-clear></Dropdown>
-                    <Dropdown v-model="item.account" :options="getAccounts(getAccountTypes(item.type))" option-label="name" data-key="id" filter show-clear></Dropdown>
-                    <InputNumber v-model="item.amount" :min-fraction-digits="2" :max-fraction-digits="2"></InputNumber>
-                    <div class="flex flex-row">
-                      <div class="flex flex-col w-2/3">
-                        <InputNumber v-model="item.foreign_amount" :min-fraction-digits="2" :max-fraction-digits="2"></InputNumber>
-                      </div>
-                      <div class="flex flex-col w-1/3">
-                        <Dropdown v-model="item.foreign_currency" :options="currencies" option-label="code" data-key="id" filter show-clear></Dropdown>
-                      </div>
-                    </div>
-                    <DatePicker v-model="item.date" show-time hour-format="24" date-format="yy-mm-dd" fuild></DatePicker>
+                    <div class="text-xl font-bold">{{item.name}}</div>
+                    <div class="font-bold">{{item.amount}}</div>
+                    <div>{{item.date}}</div>
                   </div>
                   <div class="flex flex-col w-2/3">
-                    <Text-Area v-model="item.notes" class="w-full h-full"></Text-Area>
+                    <table class="border-collapse">
+                      <tr v-for="(value, key) in item.meta">
+                        <td class="font-bold w-1/3">{{key}}</td>
+                        <td>&nbsp;{{value}}</td>
+                      </tr>
+                    </table>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </template>
-      </DataView>
-    </div>
+          </template>
+        </DataView>
+      </div>
 
+      <div v-if="transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
+        <DataView :value="transactions">
+          <template #list="slotProps">
+            <div>
+              <div v-for="(item, index) in slotProps.items" :key="index">
+                <div class="bg-white shadow rounded m-6 p-2">
+                  <BlockUI :blocked="item.inProgress">
+                    <div v-if="item.inProgress" class="absolute inset-0 flex items-center justify-center">
+                      <ProgressSpinner></ProgressSpinner>
+                    </div>
+                    <div class="flex items-center space-x-4 mb-2">
+                      <VButton label="Store" @click="storeTransaction(index)" :disabled="!canStore(item)"></VButton>
+                      <span :class="getStateClasses(item.state)">{{item.state}}</span>
+                    </div>
+                    <div class="basis-full">
+                      <SelectButton v-model="item.type" :options="transactionTypes" option-label="label" option-value="id"></SelectButton>
+                    </div>
+                    <div class="flex flex-row">
+                      <div class="flex flex-col place-content-center w-1/3">
+                        <InputText type="text" v-model="item.description" size="large"></InputText>
+                        <Dropdown v-model="item.category" :options="categories" option-label="name" filter show-clear></Dropdown>
+                        <Dropdown v-model="item.account" :options="getAccounts(getAccountTypes(item.type))" editable option-label="name" data-key="id" filter show-clear></Dropdown>
+                        <InputNumber v-model="item.amount" :min-fraction-digits="2" :max-fraction-digits="2"></InputNumber>
+                        <div class="flex flex-row">
+                          <div class="flex flex-col w-2/3">
+                            <InputNumber v-model="item.foreign_amount" :min-fraction-digits="2" :max-fraction-digits="2"></InputNumber>
+                          </div>
+                          <div class="flex flex-col w-1/3">
+                            <Dropdown v-model="item.foreign_currency" :options="currencies" option-label="code" data-key="id" filter show-clear></Dropdown>
+                          </div>
+                        </div>
+                        <DatePicker v-model="item.date" show-time hour-format="24" date-format="yy-mm-dd" fuild></DatePicker>
+                      </div>
+                      <div class="flex flex-col w-2/3">
+                        <Text-Area v-model="item.notes" class="w-full h-full"></Text-Area>
+                      </div>
+                    </div>
+                  </BlockUI>
+                </div>
+              </div>
+            </div>
+          </template>
+        </DataView>
+      </div>
+
+    </BlockUI>
   </div>
 </body>
 

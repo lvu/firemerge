@@ -1,6 +1,7 @@
 from datetime import date
 from itertools import count
-from typing import NamedTuple, Optional, AsyncIterable
+from time import monotonic
+from typing import Optional, AsyncIterable
 from uuid import uuid4
 
 from aiohttp import ClientResponseError, ClientSession
@@ -21,16 +22,20 @@ class FireflyClient:
             self._session = ClientSession()
         return self._session
 
-    async def _request(self, path: str, params: Optional[dict] = None) -> dict:
+    async def _request(
+        self, path: str, params: Optional[dict] = None, method: str = "GET", json: Optional[dict] = None
+    ) -> dict:
         headers = {
             "accept": "application/json",
             "Authorization":  "Bearer " + self.token,
             "Content-Type": "application/json",
             "X-Trace-Id": str(uuid4()),
-
         }
         url = f"{self.base_url}/api/{path}"
-        async with self.session.request("GET", url, headers=headers, params=params) as resp:
+        print(f"Requesting {url}, data: {json}")
+        started_at = monotonic()
+        async with self.session.request(method, url, headers=headers, params=params, json=json) as resp:
+            print(f"Got response in {monotonic() - started_at:.2}s")
             if not resp.ok:
                 data = await resp.text()
                 raise ClientResponseError(
@@ -40,7 +45,10 @@ class FireflyClient:
                     message=f"{resp.reason}\n{data}",
                     headers=resp.headers,
                 )
-            return await resp.json()
+            started_at = monotonic()
+            data = await resp.json()
+            print(f"Read {len(data)} response in {monotonic() - started_at:.2}s")
+            return data
 
     async def _paging_get(self, path: str, params: Optional[dict] = None) -> AsyncIterable[dict]:
         params = params or {}
@@ -58,11 +66,37 @@ class FireflyClient:
             {"start": start.strftime("%Y-%m-%d"), "limit": 2000}
         ):
             for trans in row["attributes"]["transactions"]:
-                yield Transaction.model_validate({**trans, "id": row["id"], "state": TransactionState.Unmatched.value})
+                yield Transaction.model_validate({
+                    **trans, "id":
+                    row["id"],
+                    "state": TransactionState.Unmatched.value,
+                })
+
+    async def store_transaction(self, transaction: Transaction) -> Transaction:
+        if transaction.id is None:
+            resp = await self._request("v1/transactions", method="POST", json={
+                "transactions": [transaction.model_dump(mode="json")]
+            })
+        else:
+            resp = await self._request(f"v1/transactions/{transaction.id}", method="PUT", json={
+                "transactions": [transaction.model_dump(mode="json")]
+            })
+        resp_transactions = resp["data"]["attributes"]["transactions"]
+        if len(resp_transactions) != 1:
+            raise RuntimeError(f"{len(resp_transactions)} transactions returned")
+        return Transaction.model_validate({
+            **resp_transactions[0],
+            "id": resp["data"]["id"],
+            "state": TransactionState.Matched.value,
+        })
 
     async def get_accounts(self) -> AsyncIterable[Account]:
         async for row in self._paging_get("v1/accounts", {"limit": 1000}):
             yield Account.model_validate({**row["attributes"], "id": row["id"]})
+
+    async def get_account(self, account_id: int) -> Account:
+        resp = await self._request(f"v1/accounts/{account_id}")
+        return Account.model_validate({**resp["data"]["attributes"], "id": resp["data"]["id"]})
 
     async def get_categories(self) -> AsyncIterable[Category]:
         async for row in self._paging_get("v1/categories"):

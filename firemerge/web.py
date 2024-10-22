@@ -67,6 +67,31 @@ async def transactions(request: web.Request) -> web.Response:
     ])
 
 
+async def store_transaction(request: web.Request) -> web.Response:
+    data = await request.json()
+    account_id = data["account_id"]
+    transaction = Transaction.model_validate(data["transaction"])
+    new_transaction = await request.app[FIREFLY_CLIENT].store_transaction(transaction)
+
+    app_transactions = request.app[TRANSACTIONS][account_id]
+    if transaction.id is None:
+        app_transactions.append(new_transaction)
+    else:
+        idx = next(idx for (idx, tr) in enumerate(app_transactions) if tr.id == transaction.id)
+        app_transactions[idx] = new_transaction
+    app_transactions.sort(key=lambda tr: tr.date, reverse=True)
+
+    new_acc_id = None
+    if transaction.source_id is None:
+        new_acc_id = new_transaction.source_id
+    if transaction.destination_id is None:
+        new_acc_id = new_transaction.destination_id
+    if new_acc_id is not None:
+        request.app[ACCOUNTS].append(await request.app[FIREFLY_CLIENT].get_account(new_acc_id))
+
+    return web.json_response(new_transaction.model_dump(mode="json"))
+
+
 def read_statement() -> Iterable[StatementTransaction]:
     with open(sys.argv[1]) as f:
         for line in f:
@@ -90,6 +115,7 @@ def main():
     app.add_routes([
         web.get('/', root),
         web.get('/transactions', transactions),
+        web.post('/transaction', store_transaction),
         web.get('/statement', statement),
         web.get('/accounts', accounts),
         web.get('/categories', categories),
