@@ -2,10 +2,12 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from types import NoneType
-from typing import Any, get_args, get_origin, Optional, Union
+from typing import Any, get_args, get_origin, Optional
+from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, Field, model_validator, model_serializer
+from pydantic import BaseModel, field_validator
 from pydantic_core import core_schema
+from tzlocal import get_localzone
 
 
 class Money(Decimal):
@@ -20,6 +22,14 @@ class TransactionType(Enum):
     Transfer = "transfer"
     Deposit = "deposit"
     Reconciliation = "reconciliation"
+
+
+class TransactionState(Enum):
+    Matched = "matched"
+    Annotated = "annotated"
+    New = "new"
+    Unmatched = "unmatched"
+    Enriched = "enriched"
 
 
 class AccountType(Enum):
@@ -41,10 +51,20 @@ class StatementTransaction(BaseModel):
     meta: dict[str, str]
     fee: Optional[str] = None
 
+    @field_validator('date', mode="wrap")
+    @classmethod
+    def set_local_timezone(cls, value, handler):
+        result = handler(value)
+        if result.tzinfo is None:
+            local_tz = ZoneInfo(str(get_localzone()))
+            return result.replace(tzinfo=local_tz)
+        return result
+
 
 class Account(BaseModel):
     id: int
     type: AccountType
+    currency_id: int
     name: str
 
 
@@ -62,7 +82,8 @@ class Currency(BaseModel):
 
 class Transaction(BaseModel):
     """Transaction representation as received from bank."""
-    id: int
+    id: Optional[int]
+    state: TransactionState
     type: TransactionType
     date: datetime
     amount: Money
@@ -72,11 +93,11 @@ class Transaction(BaseModel):
     foreign_amount: Optional[Money]
     foreign_currency_id: Optional[int]
     foreign_currency_code: Optional[str]
-    category_id: Optional[int]
-    category_name: Optional[str]
-    source_id: int
-    source_name: str
-    destination_id: int
-    destination_name: str
-    reconciled: bool
-    notes: Optional[str]
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+    source_id: Optional[int] = None
+    source_name: Optional[str] = None
+    destination_id: Optional[int] = None
+    destination_name: Optional[str] = None
+    reconciled: bool = False
+    notes: Optional[str] = None

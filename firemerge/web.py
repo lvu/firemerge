@@ -1,15 +1,14 @@
-import json
 import os
 import os.path
 import sys
+from datetime import datetime, timedelta
 from typing import Iterable
 
-import tomlkit
 from aiohttp import web
 from dotenv import load_dotenv
-from pydantic import TypeAdapter
 
 from firemerge.firefly_client import FireflyClient
+from firemerge.merge import merge_transactions
 from firemerge.model import Account, Category, Currency, StatementTransaction, Transaction
 
 
@@ -20,6 +19,7 @@ STATEMENT = web.AppKey("statement", list[StatementTransaction])
 ACCOUNTS = web.AppKey("accounts", list[Account])
 CATEGORIES = web.AppKey("categories", list[Category])
 CURRENCIES = web.AppKey("currencies", list[Currency])
+TRANSACTIONS = web.AppKey("transactions", dict[int, list[Transaction]])
 
 
 async def root(request: web.Request) -> web.Response:
@@ -52,11 +52,17 @@ async def currencies(request: web.Request) -> web.Response:
 
 
 async def transactions(request: web.Request) -> web.Response:
+    account_id = int(request.query["account_id"])
+    account = next(acc for acc in request.app[ACCOUNTS] if acc.id == account_id)
+    account_currency = next(curr for curr in request.app[CURRENCIES] if curr.id == account.currency_id)
+    if account_id not in request.app[TRANSACTIONS]:
+        request.app[TRANSACTIONS][account_id] = [
+            tr async for tr in
+            request.app[FIREFLY_CLIENT].get_transactions(account_id, datetime.now() - timedelta(days=365))
+        ]
     return web.json_response([
-        row.model_dump(mode="json")
-        async for row in request.app[FIREFLY_CLIENT].get_transactions(
-            int(request.query["account_id"]),
-            min(tr.date for tr in request.app[STATEMENT])
+        tr.model_dump(mode="json") for tr in merge_transactions(
+            request.app[TRANSACTIONS][account_id], request.app[STATEMENT], request.app[CURRENCIES], account_currency
         )
     ])
 
@@ -78,6 +84,7 @@ def main():
     load_dotenv()
     app = web.Application()
     app[STATEMENT] = list(read_statement())
+    app[TRANSACTIONS] = {}
     app[FIREFLY_CLIENT] = FireflyClient(os.getenv("FIREFLY_BASE_URL"), os.getenv("FIREFLY_TOKEN"))
     app.router.add_static('/static/', path=FRONTEND_ROOT, name='static')
     app.add_routes([

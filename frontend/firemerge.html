@@ -21,10 +21,13 @@
 <body>
   <script src="./firemerge.js"></script>
   <div id="app">
-    <Dropdown v-model="assetAccount" :options="getAccounts(['asset'])" option-label="name" placeholder="Asset account"></Dropdown>
-    <VButton label="Load" @click="loadTransactions" :disabled="!assetAccount"></VButton>
+    <div class="flex items-center space-x-4 m-8">
+      <Dropdown v-model="assetAccount" :options="getAccounts(['asset'])" option-label="name" placeholder="Asset account"></Dropdown>
+      <VButton label="Load" @click="loadTransactions" :disabled="!assetAccount"></VButton>
+      <VButton label="Store" @click="storeTransactions" :disabled="!assetAccount || !transactions.length"></VButton>
+    </div>
 
-    <div v-if="!transactions.length" class="space-y-4 bg-slate-50">
+    <div v-if="!transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
       <DataView :value="statementTransactions">
         <template #list="slotProps">
           <div>
@@ -51,12 +54,16 @@
       </DataView>
     </div>
 
-    <div v-if="transactions.length" class="space-y-4 bg-slate-50">
+    <div v-if="transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
       <DataView :value="transactions">
         <template #list="slotProps">
           <div>
             <div v-for="(item, index) in slotProps.items" :key="index">
               <div class="bg-white shadow rounded m-6 p-2">
+                <div class="flex items-center space-x-4 mb-2">
+                  <ToggleSwitch v-model="item.active"></ToggleSwitch>
+                  <span :class="getStateClasses(item.state)">{{item.state}}</span>
+                </div>
                 <div class="basis-full">
                   <SelectButton v-model="item.type" :options="transactionTypes" option-label="label" option-value="id"></SelectButton>
                 </div>
@@ -74,7 +81,7 @@
                         <Dropdown v-model="item.foreign_currency" :options="currencies" option-label="code" data-key="id" filter show-clear></Dropdown>
                       </div>
                     </div>
-                    <DatePicker v-model="item.date" show-time hour-format="24" fuild></DatePicker>
+                    <DatePicker v-model="item.date" show-time hour-format="24" date-format="yy-mm-dd" fuild></DatePicker>
                   </div>
                   <div class="flex flex-col w-2/3">
                     <Text-Area v-model="item.notes" class="w-full h-full"></Text-Area>

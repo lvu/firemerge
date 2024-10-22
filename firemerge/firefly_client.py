@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from aiohttp import ClientResponseError, ClientSession
 
-from firemerge.model import Account, Category, Currency, Transaction
+from firemerge.model import Account, Category, Currency, Transaction, TransactionState
 
 
 class FireflyClient:
@@ -53,17 +53,16 @@ class FireflyClient:
                 break
 
     async def get_transactions(self, account_id: int, start: date) -> AsyncIterable[Transaction]:
-        async for row in self._paging_get(f"v1/accounts/{account_id}/transactions", {"start": start.strftime("%Y-%m-%d")}):
+        async for row in self._paging_get(
+            f"v1/accounts/{account_id}/transactions",
+            {"start": start.strftime("%Y-%m-%d"), "limit": 2000}
+        ):
             for trans in row["attributes"]["transactions"]:
-                yield Transaction.model_validate({**trans, "id": row["id"]})
+                yield Transaction.model_validate({**trans, "id": row["id"], "state": TransactionState.Unmatched.value})
 
     async def get_accounts(self) -> AsyncIterable[Account]:
         async for row in self._paging_get("v1/accounts", {"limit": 1000}):
-            yield Account.model_validate({
-                "id": row["id"],
-                "type": row["attributes"]["type"],
-                "name": row["attributes"]["name"],
-            })
+            yield Account.model_validate({**row["attributes"], "id": row["id"]})
 
     async def get_categories(self) -> AsyncIterable[Category]:
         async for row in self._paging_get("v1/categories"):

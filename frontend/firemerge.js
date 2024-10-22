@@ -44,18 +44,23 @@ onload = (event) => {
                 this.transactions = (
                     await this.fetch('/transactions', {"account_id": this.assetAccount.id})
                 ).map((tr) => ({
+                    active: ["new", "enriched", "annotated"].includes(tr.state),
+                    state: tr.state,
+                    type: tr.type != "transfer" ? tr.type : (tr.source_id == this.assetAccount.id ? "transfer-out" : "transfer-in"),
                     description: tr.description,
-                    amount: tr.amount,
-                    foreign_amount: tr.foreign_amount,
+                    amount: tr.amount ? Number(tr.amount) : tr.amount,
+                    foreign_amount: tr.foreign_amount ? Number(tr.foreign_amount) : tr.foreign_amount,
                     foreign_currency: {id: tr.foreign_currency_id, code: tr.foreign_currency_code},
                     date: new Date(tr.date),
-                    type: tr.type != "transfer" ? tr.type : (tr.amunt > 0 ? "transfer-in" : "transfer-out"),
                     category: {id: tr.category_id, name: tr.category_name},
-                    account: tr.type == "withdrawal" || (tr.type == "transfer" && tr.amount < 0)
+                    account: tr.type == "withdrawal" || (tr.type == "transfer" && tr.source_id == this.assetAccount.id)
                         ? {id: tr.destination_id, name: tr.destination_name}
                         : {id: tr.source_id, name: tr.source_name},
                     notes: tr.notes,
                 }));
+            },
+            async storeTransactions() {
+                this.transactions.filter((tr) => tr.active).forEach((tr) => console.log(tr));
             },
             getAccountTypes(transactionType) {
                 switch (transactionType) {
@@ -71,10 +76,21 @@ onload = (event) => {
             getAccounts(accountTypes) {
                 return this.accounts.filter((acc) => accountTypes.includes(acc.type));
             },
+            getStateClasses(state) {
+                return [
+                    'inline-block', 'px-3', 'py-1', 'rounded', 'text-white', 'text-sm', 'font-medium',
+                    {
+                      'bg-teal-500': state === 'annotated',
+                      'bg-slate-500': state === 'matched',
+                      'bg-green-500': state === 'new',
+                      'bg-yellow-500': state === 'unmatched',
+                      'bg-blue-500': state === 'enriched',
+                    }
+                ];
+            },
         },
         async mounted() {
             await this.loadStaticData();
-            console.log(this.accounts);
         },
     });
 
@@ -96,5 +112,6 @@ onload = (event) => {
     app.component('datepicker', PrimeVue.DatePicker);
     app.component('selectbutton', PrimeVue.SelectButton);
     app.component('text-area', PrimeVue.Textarea);
+    app.component('toggleswitch', PrimeVue.ToggleSwitch);
     app.mount('#app');
 }
