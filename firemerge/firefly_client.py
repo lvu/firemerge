@@ -32,7 +32,7 @@ class FireflyClient:
             "X-Trace-Id": str(uuid4()),
         }
         url = f"{self.base_url}/api/{path}"
-        print(f"Requesting {url}, data: {json}")
+        print(f"Requesting {url}, params: {params}, data: {json}")
         started_at = monotonic()
         async with self.session.request(method, url, headers=headers, params=params, json=json) as resp:
             print(f"Got response in {monotonic() - started_at:.2}s")

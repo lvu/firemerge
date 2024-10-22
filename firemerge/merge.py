@@ -71,12 +71,12 @@ def merge_transactions(
         transactions: list[Transaction], statement: list[StatementTransaction],
         currencies: list[Currency], account_currency: Currency
     ) -> list[Transaction]:
-    transactions = transactions[:]
-    result: list[Transaction] = []
     transactions.sort(key=lambda tr: tr.date, reverse=True)
+    transactions_to_match = transactions[:]
+    result: list[Transaction] = []
     for st in statement:
-        if (tr := match_single_transaction(transactions, st)) is not None:
-            transactions.remove(tr)
+        if (tr := match_single_transaction(transactions_to_match, st)) is not None:
+            transactions_to_match.remove(tr)
             notes = get_notes(st)
             if tr.notes == notes:
                 tr.state = TransactionState.Matched
@@ -98,7 +98,7 @@ def merge_transactions(
                 tr.destination_name = source_tr.destination_name
             result.append(tr)
     min_date = min(st.date for st in statement) - timedelta(days=1)
-    for tr in transactions:
+    for tr in transactions_to_match:
         if tr.date >= min_date:
             result.append(tr)
     result.sort(key=lambda tr: tr.date, reverse=True)
