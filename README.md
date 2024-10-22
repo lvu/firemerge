@@ -8,6 +8,7 @@ this process a lot, but it has its pitfalls:
 * it misses transactions sometimes;
 * it doesn't store the notifications, so if you accidentally swipe them out or reboot your phone, you lose them;
 * if there's more than 10 unprocessed notifications, the earlier ones get lost too.
+
 Plus, I always wanted to have an ability to load the data (description, account and category) from the latest similar
 transation; some transactions, like buying food in my local supermarket, are occuring frequently, and it just bugs me to
 enter these details manually, even with all the autocompletes. Using Firefly III rules isn't ideal either, as I'd like to
@@ -57,6 +58,6 @@ Now, run the merger itself, feeding the statement file to it:
 
 Go to http://127.0.0.1:8080/ in your regular browser, select the account to merge the statement into and have fun :)
 
-[!CAUTION]
-This web app is intended to be used locally; do not deploy it on the web! The frontend communicates with the backend without any kind
-of authentication!
+> [!CAUTION]
+> This web app is intended to be used locally; do not deploy it on the web! The frontend communicates with the backend without any kind
+> of authentication!
