@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from types import NoneType
+from functools import cached_property
 from typing import Any, get_args, get_origin, Optional
 from zoneinfo import ZoneInfo
 
@@ -50,6 +50,13 @@ class StatementTransaction(BaseModel):
     amount: Money
     meta: dict[str, str]
     fee: Optional[str] = None
+
+    @cached_property
+    def notes(self) -> str:
+        return "\n".join(
+            f"{k}: {v}"
+            for k, v in self.meta.items()
+        )
 
     @field_validator('date', mode="wrap")
     @classmethod
@@ -101,3 +108,16 @@ class Transaction(BaseModel):
     destination_name: Optional[str] = None
     reconciled: bool = False
     notes: Optional[str] = None
+
+    @cached_property
+    def meta(self) -> dict[str, str]:
+        result = {}
+        if self.notes is None:
+            return result
+
+        for line in self.notes.splitlines():
+            line = line.strip()
+            if ":" in line:
+                k, v = line.split(":", 1)
+                result[k] = v
+        return result

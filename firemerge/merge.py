@@ -2,27 +2,32 @@ import re
 from datetime import timedelta
 from typing import Optional, Tuple
 
+from thefuzz.process import extractOne
+
 from .model import Currency, Money, StatementTransaction, Transaction, TransactionState, TransactionType
 
+"""
+def parse_notes(notes: str) -> dict[str, str]:
+    result = {}
+    for line in notes.split("\n"):
+        line = line.strip()
+"""
 
-def get_notes(st: StatementTransaction) -> str:
-    return "\n".join(
-        f"{k}: {v}"
-        for k, v in st.meta.items()
-    )
 
 
 def best_match(tranactions: list[Transaction], st: StatementTransaction) -> Optional[Transaction]:
     for meta_field in [
+        "Reference",
         "Transaction ID",
         "Recipient",
         "IBAN",
         "Description",
     ]:
         if (value := st.meta.get(meta_field)) is not None:
-            for tr in tranactions:
-                if (tr.notes and value in tr.notes) or value in tr.description:
-                    return tr
+            data = {idx: tr.meta.get(meta_field, tr.description) for idx, tr in enumerate(tranactions)}
+            if (best := extractOne(value, data, score_cutoff=90)) is not None:
+                _, _, idx = best
+                return tranactions[idx]
     return None
 
 
@@ -63,7 +68,7 @@ def statement_to_transaction(
         foreign_amount=foreign_amount,
         foreign_currency_id=foreign_currency.id if foreign_currency is not None else None,
         foreign_currency_code=foreign_currency.code if foreign_currency is not None else None,
-        notes=get_notes(st),
+        notes=st.notes,
     )
 
 
@@ -77,11 +82,10 @@ def merge_transactions(
     for st in statement:
         if (tr := match_single_transaction(transactions_to_match, st)) is not None:
             transactions_to_match.remove(tr)
-            notes = get_notes(st)
-            if tr.notes == notes:
+            if tr.notes == st.notes:
                 tr.state = TransactionState.Matched
             else:
-                tr.notes = get_notes(st)
+                tr.notes = st.notes
                 tr.state = TransactionState.Annotated
             result.append(tr)
         else:
