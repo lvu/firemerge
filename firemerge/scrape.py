@@ -22,9 +22,6 @@ def main() -> None:
     chrome_options = Options()
     chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
     driver = webdriver.Chrome(options=chrome_options)
-    driver.get("https://online.raiffeisen.ua/ibank/accounts")
-
-    wait_and_open_statement(driver)
     switch_to_english(driver)
 
     for row in gen_rows(driver):
@@ -64,12 +61,13 @@ def parse_meta(statement_div) -> dict[str, str]:
 
 def parse_simple(statement_div) -> StatementTransaction:
     div_summary = statement_div.find_element(CSS, "div.summary")
+    if "," in (date_text := div_summary.find_element(CSS, "span.date").text):
+        tr_date = datetime.strptime(date_text, "%d.%m.%Y, %H:%M")
+    else:
+        tr_date = datetime.strptime(date_text, "%d.%m.%Y")
     return StatementTransaction(
         name=div_summary.find_element(CSS, "span.name").text,
-        date=datetime.strptime(
-            div_summary.find_element(CSS, "span.date").text,
-            "%d.%m.%Y, %H:%M"
-        ),
+        date=tr_date,
         amount=Decimal(
             div_summary
                 .find_element(CSS, "span.sum")
