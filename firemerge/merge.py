@@ -17,11 +17,7 @@ def parse_notes(notes: str) -> dict[str, str]:
 
 def best_match(tranactions: list[Transaction], st: StatementTransaction) -> Optional[Transaction]:
     for meta_field in [
-        "Reference",
-        "Transaction ID",
-        "Recipient",
-        "IBAN",
-        "Description",
+        "Description",  # maybe we'll have more at some point?
     ]:
         if (value := st.meta.get(meta_field)) is not None:
             data = {idx: tr.meta.get(meta_field, tr.description) for idx, tr in enumerate(tranactions)}
@@ -51,10 +47,9 @@ def parse_foreign_amount(foreign_str: str, currencies: list[Currency]) -> Tuple[
 def statement_to_transaction(
     st: StatementTransaction, currencies: list[Currency], account_currency: Currency
 ) -> Transaction:
-    if (fs := st.meta.get("In currency")) is not None:
-        foreign_amount, foreign_currency = parse_foreign_amount(fs, currencies)
-    else:
-        foreign_amount, foreign_currency = None, None
+    foreign_currency = st.foreign_currency_code and next(
+        curr for curr in currencies if curr.code == st.foreign_currency_code
+    )
 
     return Transaction(
         id = None,
@@ -65,7 +60,7 @@ def statement_to_transaction(
         description=st.name,
         currency_id=account_currency.id,
         currency_code=account_currency.code,
-        foreign_amount=foreign_amount,
+        foreign_amount=st.foreign_amount and abs(st.foreign_amount),
         foreign_currency_id=foreign_currency.id if foreign_currency is not None else None,
         foreign_currency_code=foreign_currency.code if foreign_currency is not None else None,
         notes=st.notes,

@@ -11,6 +11,7 @@ from thefuzz.process import extract
 from firemerge.firefly_client import FireflyClient
 from firemerge.merge import merge_transactions
 from firemerge.model import Account, Category, Currency, StatementTransaction, Transaction
+from firemerge.statement import read_statement
 
 
 PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
@@ -107,12 +108,6 @@ async def _get_transactions(app: web.Application, account_id: int) -> list[Trans
     return app[TRANSACTIONS][account_id]
 
 
-def read_statement() -> Iterable[StatementTransaction]:
-    with open(sys.argv[1]) as f:
-        for line in f:
-            yield StatementTransaction.model_validate_json(line)
-
-
 async def load_refs(app: web.Application) -> None:
     ff_client = app[FIREFLY_CLIENT]
     app[ACCOUNTS] = [x async for x in ff_client.get_accounts()]
@@ -123,7 +118,7 @@ async def load_refs(app: web.Application) -> None:
 def main():
     load_dotenv()
     app = web.Application()
-    app[STATEMENT] = list(read_statement())
+    app[STATEMENT] = list(read_statement(sys.argv[1]))
     app[TRANSACTIONS] = {}
     app[FIREFLY_CLIENT] = FireflyClient(os.getenv("FIREFLY_BASE_URL"), os.getenv("FIREFLY_TOKEN"))
     app.router.add_static('/static/', path=FRONTEND_ROOT, name='static')

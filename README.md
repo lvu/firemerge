@@ -16,11 +16,9 @@ have this info when entering the transaction, to be able to correct it if needed
 
 ## My use-case
 
-Matters get more complicated, as my bank ([Raiffeisen Ukraine](https://raiffeisen.ua/)) doesn't provide any API to get the bank statement;
-and its CSV/XLSX export is terribly incomple. So in this project a Selenium-based web scraper is included. Of course, it's highly specific
-to the bank's website.
+Matters get more complicated, as my bank ([Raiffeisen Ukraine](https://raiffeisen.ua/)) doesn't provide any API to get the bank statement; all it has currently is an ability to export a statement it a PDF(!) format.
 
-The rest is also rather bank-specific, especially the merging part, but it could probably be customized if needed.
+The project is rather bank-specific, especially the merging part, but it could probably be customized if needed.
 
 In general, you probably won't be able to use this project as is unless your use-case is nearly the same as mine.
 
@@ -34,27 +32,14 @@ If you decided to try it out anyway, first install the project, preferrably in a
     . ./venv/bin/activate
     pip install -e .
 
-Now, when this virtualenv in activated, you can run the scripts.
-
-To scrape your statement, run a debug session for your Chrome browser like this:
-
-    chrome --remote-debugging-port=9222 --user-data-dir=./.chrome
-
-and run
-
-    firemerge-scrape > statement.jsonl
-
-This will open a Chrome window; log into your bank account there. Then it will scrape your first account and will write the
-statement for the last month into `statement.jsonl` file.
-
 To configure the merger, create a file named `.env` in the project dir and write there:
 
     FIREFLY_BASE_URL=<https://my-firefly-installation.my-domain/>
     FIREFLY_TOKEN=<MY.FIREFLY.PERSONAL.ACCESS.TOKEN>
 
-Now, run the merger itself, feeding the statement file to it:
+Now, download your bank's statement and run the merger, feeding the statement file to it:
 
-    firemerge statement.jsonl
+    firemerge statement.pdf
 
 Go to http://127.0.0.1:8080/ in your regular browser, select the account to merge the statement into and have fun :)
 

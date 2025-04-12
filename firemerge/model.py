@@ -48,6 +48,8 @@ class StatementTransaction(BaseModel):
     name: str
     date: datetime
     amount: Money
+    foreign_amount: Optional[Money]
+    foreign_currency_code: Optional[str]
     meta: dict[str, str]
     fee: Optional[str] = None
 
