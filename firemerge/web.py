@@ -1,11 +1,8 @@
 import os
 import os.path
-import sys
-from datetime import datetime, timedelta
-from typing import Iterable
+from datetime import timedelta
 
 from aiohttp import web
-from dotenv import load_dotenv
 from thefuzz.process import extract
 
 from firemerge.firefly_client import FireflyClient
@@ -100,10 +97,11 @@ async def search_descritions(request: web.Request) -> web.Response:
 
 
 async def _get_transactions(app: web.Application, account_id: int) -> list[Transaction]:
+    start_date = min(tr.date for tr in app[STATEMENT]) - timedelta(days=3)
     if account_id not in app[TRANSACTIONS]:
         app[TRANSACTIONS][account_id] = [
             tr async for tr in
-            app[FIREFLY_CLIENT].get_transactions(account_id, datetime.now() - timedelta(days=365))
+            app[FIREFLY_CLIENT].get_transactions(account_id, start_date)
         ]
     return app[TRANSACTIONS][account_id]
 
@@ -115,12 +113,15 @@ async def load_refs(app: web.Application) -> None:
     app[CURRENCIES] = [x async for x in ff_client.get_currencies()]
 
 
-def main():
-    load_dotenv()
+def serve(statement_file, client: FireflyClient):
+    async def client_ctx(app):
+        async with client:
+            app[FIREFLY_CLIENT] = client
+            yield
+
     app = web.Application()
-    app[STATEMENT] = list(read_statement(sys.argv[1]))
+    app[STATEMENT] = list(read_statement(statement_file))
     app[TRANSACTIONS] = {}
-    app[FIREFLY_CLIENT] = FireflyClient(os.getenv("FIREFLY_BASE_URL"), os.getenv("FIREFLY_TOKEN"))
     app.router.add_static('/static/', path=FRONTEND_ROOT, name='static')
     app.add_routes([
         web.get('/', root),
@@ -132,9 +133,6 @@ def main():
         web.get('/currencies', currencies),
         web.get('/descriptions', search_descritions),
     ])
+    app.cleanup_ctx.append(client_ctx)
     app.on_startup.append(load_refs)
     web.run_app(app)
-
-
-if __name__ == "__main__":
-    main()

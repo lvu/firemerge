@@ -1,12 +1,16 @@
+import logging
 from datetime import date
 from itertools import count
 from time import monotonic
-from typing import Optional, AsyncIterable
+from typing import Optional, AsyncIterable, Self
 from uuid import uuid4
 
 from aiohttp import ClientResponseError, ClientSession
 
 from firemerge.model import Account, Category, Currency, Transaction, TransactionState
+
+
+logger = logging.getLogger(__name__)
 
 
 class FireflyClient:
@@ -16,11 +20,13 @@ class FireflyClient:
         self.token = token
         self._session: Optional[ClientSession] = None
 
-    @property
-    def session(self) -> ClientSession:
-        if self._session is None:
-            self._session = ClientSession()
-        return self._session
+    async def __aenter__(self) -> Self:
+        self._session = ClientSession()
+        await self._session.__aenter__()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._session.__aexit__(exc_type, exc_val, exc_tb)
 
     async def _request(
         self, path: str, params: Optional[dict] = None, method: str = "GET", json: Optional[dict] = None
@@ -32,10 +38,10 @@ class FireflyClient:
             "X-Trace-Id": str(uuid4()),
         }
         url = f"{self.base_url}/api/{path}"
-        print(f"Requesting {url}, params: {params}, data: {json}")
+        logger.debug(f"Requesting {url}, params: {params}, data: {json}")
         started_at = monotonic()
-        async with self.session.request(method, url, headers=headers, params=params, json=json) as resp:
-            print(f"Got response in {monotonic() - started_at:.2}s")
+        async with self._session.request(method, url, headers=headers, params=params, json=json) as resp:
+            logger.debug(f"Got response in {monotonic() - started_at:.2}s")
             if not resp.ok:
                 data = await resp.text()
                 raise ClientResponseError(
@@ -47,7 +53,7 @@ class FireflyClient:
                 )
             started_at = monotonic()
             data = await resp.json()
-            print(f"Read {len(data)} response in {monotonic() - started_at:.2}s")
+            logger.debug(f"Read {len(data)} response in {monotonic() - started_at:.2}s")
             return data
 
     async def _paging_get(self, path: str, params: Optional[dict] = None) -> AsyncIterable[dict]:

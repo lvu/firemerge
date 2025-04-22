@@ -39,10 +39,15 @@ To configure the merger, create a file named `.env` in the project dir and write
 
 Now, download your bank's statement and run the merger, feeding the statement file to it:
 
-    firemerge statement.pdf
+    firemerge merge statement.pdf
 
 Go to http://127.0.0.1:8080/ in your regular browser, select the account to merge the statement into and have fun :)
 
 > [!CAUTION]
 > This web app is intended to be used locally; do not deploy it on the web! The frontend communicates with the backend without any kind
 > of authentication!
+
+
+## Other commands
+Apart from `merge`, there are other commands, which automate some operations I need, and are used from command-line.
+Just read the code.
