@@ -97,7 +97,7 @@ async def search_descritions(request: web.Request) -> web.Response:
 
 
 async def _get_transactions(app: web.Application, account_id: int) -> list[Transaction]:
-    start_date = min(tr.date for tr in app[STATEMENT]) - timedelta(days=3)
+    start_date = max(tr.date for tr in app[STATEMENT]) - timedelta(days=365)
     if account_id not in app[TRANSACTIONS]:
         app[TRANSACTIONS][account_id] = [
             tr async for tr in
