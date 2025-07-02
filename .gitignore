@@ -2,7 +2,6 @@ venv/
 *.egg-info/
 __pycache__/
 .env
-config.toml
 statement.json
 .chrome/
 .idea/

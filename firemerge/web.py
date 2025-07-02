@@ -4,6 +4,7 @@ import os
 import os.path
 from datetime import timedelta
 from io import BytesIO, StringIO
+from zoneinfo import ZoneInfo
 
 import redis.asyncio as redis
 from aiohttp import web
@@ -60,8 +61,15 @@ async def upload_statement(request: web.Request) -> web.Response:
         content = BytesIO(await field.read())
         session = await get_session(request)
 
+        # Get timezone from request parameters
+        timezone_str = request.query.get("timezone", "UTC")
+        try:
+            tz = ZoneInfo(timezone_str)
+        except Exception:
+            tz = ZoneInfo("UTC")
+
         # Parse the statement
-        statement_transactions = list(read_statement(content))
+        statement_transactions = list(read_statement(content, tz))
         session["statement_transactions"] = [
             tr.model_dump(mode="json") for tr in statement_transactions
         ]

@@ -93,7 +93,10 @@ onload = (event) => {
                     const formData = new FormData();
                     formData.append('statement', this.selectedFile);
 
-                    const response = await fetch('/upload', {
+                    // Get client timezone
+                    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+                    const response = await fetch(`/upload?timezone=${encodeURIComponent(timezone)}`, {
                         method: 'POST',
                         body: formData
                     });

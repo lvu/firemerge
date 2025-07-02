@@ -3,11 +3,9 @@ from decimal import Decimal
 from enum import Enum
 from functools import cached_property
 from typing import Optional
-from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel
 from pydantic_core import core_schema
-from tzlocal import get_localzone
 
 
 class Money(Decimal):
@@ -59,15 +57,6 @@ class StatementTransaction(BaseModel):
     @cached_property
     def notes(self) -> str:
         return "\n".join(f"{k}: {v}" for k, v in self.meta.items())
-
-    @field_validator("date", mode="wrap")
-    @classmethod
-    def set_local_timezone(cls, value, handler):
-        result = handler(value)
-        if result.tzinfo is None:
-            local_tz = ZoneInfo(str(get_localzone()))
-            return result.replace(tzinfo=local_tz)
-        return result
 
 
 class Account(BaseModel):

@@ -1,6 +1,7 @@
 from datetime import datetime
 from io import BytesIO
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 import pdfplumber
 
@@ -27,7 +28,9 @@ def money(s: str) -> Money:
     return Money(s.replace(" ", "").replace(",", "."))
 
 
-def read_statement(pdf_data: str | BytesIO) -> Iterable[StatementTransaction]:
+def read_statement(
+    pdf_data: str | BytesIO, tz: ZoneInfo
+) -> Iterable[StatementTransaction]:
     with pdfplumber.open(pdf_data) as pdf:
         for page in pdf.pages:
             for table in page.find_tables():
@@ -38,7 +41,9 @@ def read_statement(pdf_data: str | BytesIO) -> Iterable[StatementTransaction]:
                     for row in data[1:]:
                         yield StatementTransaction(
                             name=row[4],
-                            date=datetime.strptime(row[0], "%d.%m.%Y %H:%M"),
+                            date=datetime.strptime(row[0], "%d.%m.%Y %H:%M").replace(
+                                tzinfo=tz
+                            ),
                             amount=money(row[5]),
                             foreign_amount=money(row[6]) if row[5] == row[6] else None,
                             foreign_currency_code=row[7] if row[5] == row[6] else None,
