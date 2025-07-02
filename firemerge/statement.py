@@ -31,7 +31,9 @@ def read_statement(pdf_data: str | BytesIO) -> Iterable[StatementTransaction]:
     with pdfplumber.open(pdf_data) as pdf:
         for page in pdf.pages:
             for table in page.find_tables():
-                data = [[translate(c) for c in row if c] for row in table.extract()]
+                data = [
+                    [translate(c) if c else "" for c in row] for row in table.extract()
+                ]
                 if data[0] == HEADER:
                     for row in data[1:]:
                         yield StatementTransaction(
