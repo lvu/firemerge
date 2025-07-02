@@ -4,7 +4,14 @@ from typing import Optional, Tuple
 
 from thefuzz.process import extractOne
 
-from .model import Currency, Money, StatementTransaction, Transaction, TransactionState, TransactionType
+from .model import (
+    Currency,
+    Money,
+    StatementTransaction,
+    Transaction,
+    TransactionState,
+    TransactionType,
+)
 
 """
 def parse_notes(notes: str) -> dict[str, str]:
@@ -14,33 +21,46 @@ def parse_notes(notes: str) -> dict[str, str]:
 """
 
 
-
-def best_match(tranactions: list[Transaction], st: StatementTransaction) -> Optional[Transaction]:
+def best_match(
+    tranactions: list[Transaction], st: StatementTransaction
+) -> Optional[Transaction]:
     for meta_field in [
         "Description",  # maybe we'll have more at some point?
     ]:
         if (value := st.meta.get(meta_field)) is not None:
-            data = {idx: tr.meta.get(meta_field, tr.description) for idx, tr in enumerate(tranactions)}
+            data = {
+                idx: tr.meta.get(meta_field, tr.description)
+                for idx, tr in enumerate(tranactions)
+            }
             if (best := extractOne(value, data, score_cutoff=90)) is not None:
                 _, _, idx = best
                 return tranactions[idx]
     return None
 
 
-def match_single_transaction(tranactions: list[Transaction], st: StatementTransaction) -> Optional[Transaction]:
-    candidates = [tr for tr in tranactions if abs(tr.amount) == abs(st.amount) and abs(tr.date - st.date) < timedelta(days=1)]
+def match_single_transaction(
+    tranactions: list[Transaction], st: StatementTransaction
+) -> Optional[Transaction]:
+    candidates = [
+        tr
+        for tr in tranactions
+        if abs(tr.amount) == abs(st.amount)
+        and abs(tr.date - st.date) < timedelta(days=1)
+    ]
     if (res := best_match(candidates, st)) is not None:
         return res
     return candidates[0] if candidates else None
 
 
-def parse_foreign_amount(foreign_str: str, currencies: list[Currency]) -> Tuple[Money, Currency]:
+def parse_foreign_amount(
+    foreign_str: str, currencies: list[Currency]
+) -> Tuple[Money, Currency]:
     if foreign_str is None:
         return None
     m = re.match(r"-?([\d.,]+) (.+)", foreign_str)
     return (
         Money(m.group(1).replace(",", ".")).quantize(Money("0.01")),
-        next(curr for curr in currencies if curr.symbol == m.group(2))
+        next(curr for curr in currencies if curr.symbol == m.group(2)),
     )
 
 
@@ -52,7 +72,7 @@ def statement_to_transaction(
     )
 
     return Transaction(
-        id = None,
+        id=None,
         state=TransactionState.New,
         type=TransactionType.Withdrawal if st.amount < 0 else TransactionType.Transfer,
         date=st.date,
@@ -61,16 +81,22 @@ def statement_to_transaction(
         currency_id=account_currency.id,
         currency_code=account_currency.code,
         foreign_amount=st.foreign_amount and abs(st.foreign_amount),
-        foreign_currency_id=foreign_currency.id if foreign_currency is not None else None,
-        foreign_currency_code=foreign_currency.code if foreign_currency is not None else None,
+        foreign_currency_id=(
+            foreign_currency.id if foreign_currency is not None else None
+        ),
+        foreign_currency_code=(
+            foreign_currency.code if foreign_currency is not None else None
+        ),
         notes=st.notes,
     )
 
 
 def merge_transactions(
-        transactions: list[Transaction], statement: list[StatementTransaction],
-        currencies: list[Currency], account_currency: Currency
-    ) -> list[Transaction]:
+    transactions: list[Transaction],
+    statement: list[StatementTransaction],
+    currencies: list[Currency],
+    account_currency: Currency,
+) -> list[Transaction]:
     transactions.sort(key=lambda tr: tr.date, reverse=True)
     transactions_to_match = transactions[:]
     result: list[Transaction] = []
@@ -102,4 +128,3 @@ def merge_transactions(
             result.append(tr)
     result.sort(key=lambda tr: tr.date, reverse=True)
     return result
-

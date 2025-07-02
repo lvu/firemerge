@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from functools import cached_property
-from typing import Any, get_args, get_origin, Optional
+from typing import Any, Optional, get_args, get_origin
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, field_validator
@@ -14,7 +14,9 @@ class Money(Decimal):
 
     @classmethod
     def __get_pydantic_core_schema__(cls, _, handler):
-        return core_schema.no_info_after_validator_function(lambda x: cls(x).quantize(Decimal("0.01")), handler(Decimal))
+        return core_schema.no_info_after_validator_function(
+            lambda x: cls(x).quantize(Decimal("0.01")), handler(Decimal)
+        )
 
 
 class TransactionType(Enum):
@@ -45,6 +47,7 @@ class AccountType(Enum):
 
 class StatementTransaction(BaseModel):
     """Transaction representation as received from bank."""
+
     name: str
     date: datetime
     amount: Money
@@ -55,12 +58,9 @@ class StatementTransaction(BaseModel):
 
     @cached_property
     def notes(self) -> str:
-        return "\n".join(
-            f"{k}: {v}"
-            for k, v in self.meta.items()
-        )
+        return "\n".join(f"{k}: {v}" for k, v in self.meta.items())
 
-    @field_validator('date', mode="wrap")
+    @field_validator("date", mode="wrap")
     @classmethod
     def set_local_timezone(cls, value, handler):
         result = handler(value)
@@ -91,6 +91,7 @@ class Currency(BaseModel):
 
 class Transaction(BaseModel):
     """Transaction representation as received from bank."""
+
     id: Optional[int]
     state: TransactionState
     type: TransactionType

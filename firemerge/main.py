@@ -13,7 +13,9 @@ def create_client() -> FireflyClient:
     base_url = os.getenv("FIREFLY_BASE_URL")
     token = os.getenv("FIREFLY_TOKEN")
     if not base_url or not token:
-        raise ValueError("FIREFLY_BASE_URL and FIREFLY_TOKEN must be set in environment or .env file")
+        raise ValueError(
+            "FIREFLY_BASE_URL and FIREFLY_TOKEN must be set in environment or .env file"
+        )
     return FireflyClient(base_url, token)
 
 
@@ -28,6 +30,7 @@ def serve_web():
 
 if __name__ == "__main__":
     import sys
+
     if len(sys.argv) > 1:
         host = sys.argv[1] if len(sys.argv) > 1 else "0.0.0.0"
         port = int(sys.argv[2]) if len(sys.argv) > 2 else 8080

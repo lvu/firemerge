@@ -44,7 +44,8 @@ plugins = [
 profile = "black"
 
 [tool.taskipy.tasks]
+isort = "isort firemerge"
 lint = "flake8 firemerge"
 mypy = "mypy firemerge"
 black = "black firemerge"
-checks = "task lint && task mypy && task black"
+checks = "task isort && task black && task lint && task mypy"
