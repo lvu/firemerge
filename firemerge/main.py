@@ -2,14 +2,11 @@ import logging
 import os
 import urllib.parse
 
-from dotenv import load_dotenv
-
 from firemerge.firefly_client import FireflyClient
 from firemerge.web import serve
 
 
 def create_client() -> FireflyClient:
-    load_dotenv()
     base_url = os.getenv("FIREFLY_BASE_URL")
     token = os.getenv("FIREFLY_TOKEN")
     if not base_url or not token:
