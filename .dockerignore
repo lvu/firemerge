@@ -39,10 +39,6 @@ ENV/
 .DS_Store
 Thumbs.db
 
-# Documentation
-README.md
-LICENSE
-
 # Development files
 *.egg-info/
 build/
