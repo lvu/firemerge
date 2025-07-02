@@ -1,5 +1,6 @@
 import re
 from datetime import timedelta
+from decimal import Decimal
 from typing import Optional, Tuple
 
 from thefuzz.process import extractOne
@@ -60,7 +61,7 @@ def parse_foreign_amount(
     m = re.match(r"-?([\d.,]+) (.+)", foreign_str)
     assert m is not None
     return (
-        Money(m.group(1).replace(",", ".")).quantize(Money("0.01")),
+        Money(Decimal(m.group(1).replace(",", ".")).quantize(Decimal("0.01"))),
         next(curr for curr in currencies if curr.symbol == m.group(2)),
     )
 

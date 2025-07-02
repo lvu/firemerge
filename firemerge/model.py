@@ -11,8 +11,6 @@ from tzlocal import get_localzone
 
 
 class Money(Decimal):
-    def quantize(self, *args, **kwargs) -> "Money":
-        return Money(super().quantize(*args, **kwargs))
 
     @classmethod
     def __get_pydantic_core_schema__(cls, _, handler):
