@@ -79,19 +79,13 @@ If you prefer to install manually:
 
 3. **Start the web server:**
    ```bash
-   firemerge serve-web
+   firemerge
    ```
 
 4. **Access the web interface:**
    Open http://localhost:8080 in your browser
 
-### Legacy Local Version
 
-The original local version is still available but deprecated:
-
-```bash
-firemerge merge statement.pdf
-```
 
 > [!CAUTION]
 > The web app is intended to be used locally or in a secure environment; do not deploy it on the public web without proper authentication! The frontend communicates with the backend without any kind of authentication!
@@ -105,6 +99,7 @@ firemerge merge statement.pdf
 - **Transaction Matching**: Intelligent matching with existing transactions
 - **Data Enrichment**: Auto-fill transaction details from similar previous transactions
 - **Real-time Processing**: Store transactions directly to Firefly III
+- **Taxer Statement Generation**: Generate CSV reports for tax purposes from any account
 
 ### Security Considerations
 - Files are processed in memory and stored temporarily (Redis or memory)
@@ -113,8 +108,7 @@ firemerge merge statement.pdf
 - Both storage backends provide secure, temporary storage with automatic cleanup
 
 ## Other commands
-Apart from `serve-web` and `merge`, there are other commands, which automate some operations I need, and are used from command-line.
-Just read the code.
+The application now focuses on the web interface. Additional functionality can be accessed through the web UI, including the taxer statement generation feature.
 
 ## Requirements
 

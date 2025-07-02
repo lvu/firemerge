@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Optional Redis service - uncomment if you want to use Redis for storage
+  # This provides persistent storage and better scalability
+  # redis:
+  #   image: redis:7-alpine
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+
+  firemerge:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - FIREFLY_BASE_URL=${FIREFLY_BASE_URL}
+      - FIREFLY_TOKEN=${FIREFLY_TOKEN}
+      # Uncomment the line below if you want to use Redis for storage
+      # - REDIS_URL=redis://redis:6379
+    # Uncomment the depends_on section if you're using Redis
+    # depends_on:
+    #   redis:
+    #     condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Uncomment the volumes section if you're using Redis
+# volumes:
+#   redis_data:

@@ -15,6 +15,8 @@ onload = (event) => {
                 selectedFile: ref(null),
                 uploading: ref(false),
                 sessionInfo: ref({ has_upload: false, transaction_count: 0 }),
+                showTaxerPanel: ref(false),
+                taxerStartDate: ref(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)), // 3 months ago
                 transactionTypes: [
                     {id: "withdrawal", label: "Withdrawal"},
                     {id: "deposit", label: "Deposit"},
@@ -58,12 +60,9 @@ onload = (event) => {
             },
             async loadSessionInfo() {
                 this.sessionInfo = await this.fetch('/session_info');
-                if (this.sessionInfo.has_upload) {
-                    await this.loadStatementTransactions();
+                if (this.sessionInfo.has_upload && this.assetAccount) {
+                    await this.loadTransactions();
                 }
-            },
-            async loadStatementTransactions() {
-                this.statementTransactions = await this.fetch('/statement');
             },
             async clearSession() {
                 try {
@@ -200,6 +199,37 @@ onload = (event) => {
             },
             canStore(tr) {
                 return ["new", "enriched", "annotated"].includes(tr.state) && !tr.reconciled;
+            },
+            async downloadTaxerStatement() {
+                if (!this.assetAccount) return;
+
+                try {
+                    const startDate = this.taxerStartDate;
+                    const url = `/taxer_statement?account_id=${this.assetAccount.id}&start_date=${startDate.toISOString().split('T')[0]}`;
+
+                    // Create a temporary link and trigger download
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `taxer_statement_${this.assetAccount.id}_${startDate.toISOString().split('T')[0]}.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    this.toast.add({ severity: 'success', summary: 'Success', detail: 'Taxer statement downloaded', life: 3000 });
+                } catch (error) {
+                    this.toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 5000 });
+                }
+            },
+            toggleTaxerPanel() {
+                this.showTaxerPanel = !this.showTaxerPanel;
+            },
+            onAccountChange() {
+                // Clear transactions when account changes
+                this.transactions = [];
+                // Auto-load transactions if there's an uploaded statement
+                if (this.sessionInfo.has_upload && this.assetAccount) {
+                    this.loadTransactions();
+                }
             },
             decodeTransaction(tr) {
                 return {

@@ -27,17 +27,42 @@
         <ProgressSpinner></ProgressSpinner>
       </div>
 
-      <!-- File Upload Section -->
-      <div v-if="!statementTransactions.length" class="space-y-4 bg-slate-50 min-h-screen p-8">
-        <div class="max-w-2xl mx-auto">
-          <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">FireMerge - Bank Statement Processor</h1>
-            <div v-if="sessionInfo.has_upload" class="flex items-center space-x-2">
-              <span class="text-sm text-gray-600">{{ sessionInfo.transaction_count }} transactions in session</span>
-              <VButton label="Clear Session" @click="clearSession" severity="secondary" size="small"></VButton>
+      <!-- Header with Account Selection -->
+      <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between items-center py-4">
+            <h1 class="text-2xl font-bold text-gray-900">FireMerge</h1>
+            <div class="flex items-center space-x-4">
+              <div class="flex items-center space-x-2">
+                <span class="text-sm text-gray-600">Account:</span>
+                <Dropdown v-model="assetAccount" :options="getAccounts(['asset'])" option-label="name" placeholder="Select asset account" class="min-w-48" @change="onAccountChange"></Dropdown>
+              </div>
+              <VButton label="Taxer Statement" @click="toggleTaxerPanel" severity="secondary" size="small"></VButton>
+              <div v-if="sessionInfo.has_upload" class="flex items-center space-x-2">
+                <span class="text-sm text-gray-600">{{ sessionInfo.transaction_count }} transactions in session</span>
+                <VButton label="Clear Session" @click="clearSession" severity="secondary" size="small"></VButton>
+              </div>
             </div>
           </div>
 
+          <!-- Taxer Statement Panel -->
+          <div v-if="showTaxerPanel" class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+              <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                  <span class="text-sm text-gray-600">Start Date:</span>
+                  <DatePicker v-model="taxerStartDate" date-format="yy-mm-dd" class="w-32"></DatePicker>
+                </div>
+                <VButton label="Get Taxer Statement" @click="downloadTaxerStatement" :disabled="!assetAccount" severity="primary" size="small"></VButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Upload Section -->
+      <div v-if="!sessionInfo.has_upload" class="space-y-4 bg-slate-50 min-h-screen p-8">
+        <div class="max-w-2xl mx-auto">
           <div class="bg-white shadow rounded-lg p-6">
             <h2 class="text-xl font-semibold mb-4">Upload Bank Statement</h2>
             <p class="text-gray-600 mb-6">Upload your bank statement PDF to start processing transactions.</p>
@@ -74,60 +99,25 @@
         </div>
       </div>
 
-      <!-- Account Selection Section -->
-      <div v-if="statementTransactions.length && !transactions.length" class="space-y-4 bg-slate-50 min-h-screen p-8">
+
+
+      <!-- Loading Transactions Section -->
+      <div v-if="sessionInfo.has_upload && !transactions.length" class="space-y-4 bg-slate-50 min-h-screen p-8">
         <div class="max-w-4xl mx-auto">
-          <div class="flex justify-between items-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900">Select Account</h1>
-            <VButton label="Clear Session" @click="clearSession" severity="secondary"></VButton>
-          </div>
-
-          <div class="bg-white shadow rounded-lg p-6 mb-6">
-            <h2 class="text-xl font-semibold mb-4">Choose Asset Account</h2>
-            <p class="text-gray-600 mb-4">Select the Firefly III account to merge transactions into:</p>
-
+          <div class="bg-white shadow rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Load Transactions</h2>
+            <p class="text-gray-600 mb-4">Select an account and load transactions to start processing the uploaded statement:</p>
             <div class="flex items-center space-x-4">
-              <Dropdown v-model="assetAccount" :options="getAccounts(['asset'])" option-label="name" placeholder="Select asset account" class="min-w-64"></Dropdown>
               <VButton label="Load Transactions" @click="loadTransactions" :disabled="!assetAccount"></VButton>
             </div>
-          </div>
-
-          <!-- Statement Preview -->
-          <div class="bg-white shadow rounded-lg p-6">
-            <h2 class="text-xl font-semibold mb-4">Statement Preview ({{ statementTransactions.length }} transactions)</h2>
-            <DataView :value="statementTransactions">
-              <template #list="slotProps">
-                <div class="space-y-4">
-                  <div v-for="(item, index) in slotProps.items" :key="index" class="border rounded-lg p-4">
-                    <div class="flex justify-between items-start">
-                      <div class="flex-1">
-                        <div class="text-lg font-semibold">{{ item.name }}</div>
-                        <div class="text-sm text-gray-600">{{ item.date }}</div>
-                        <div class="text-sm text-gray-500 mt-1">
-                          <span v-for="(value, key) in item.meta" :key="key" class="mr-4">
-                            <span class="font-medium">{{ key }}:</span> {{ value }}
-                          </span>
-                        </div>
-                      </div>
-                      <div class="text-right">
-                        <div class="text-lg font-bold" :class="item.amount < 0 ? 'text-red-600' : 'text-green-600'">
-                          {{ item.amount }}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </template>
-            </DataView>
           </div>
         </div>
       </div>
 
       <!-- Transaction Processing Section -->
-      <div v-if="transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
+      <div v-if="sessionInfo.has_upload && transactions.length" class="space-y-4 bg-slate-50 overflow-auto h-screen">
         <div class="flex justify-between items-center p-4 bg-white shadow">
           <h2 class="text-xl font-semibold">Processing Transactions</h2>
-          <VButton label="Clear Session" @click="clearSession" severity="secondary"></VButton>
         </div>
         <DataView :value="transactions">
           <template #list="slotProps">

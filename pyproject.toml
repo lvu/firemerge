@@ -16,7 +16,6 @@ dependencies = [
     "tzlocal ~= 5.2",
     "thefuzz ~= 0.22.0",
     "pdfplumber ~= 0.11.6",
-    "click ~= 8.1.8",
     "redis ~= 5.0.0",
 ]
 
@@ -29,7 +28,7 @@ dev = [
 packages = ["firemerge"]
 
 [project.scripts]
-firemerge = "firemerge.main:cli"
+firemerge = "firemerge.main:serve_web"
 
 [tool.mypy]
 plugins = [
