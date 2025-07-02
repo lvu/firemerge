@@ -14,12 +14,12 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY pyproject.toml ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
-
 # Copy application code
 COPY firemerge/ ./firemerge/
 COPY frontend/ ./frontend/
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -e .
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash firemerge && \
@@ -40,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/ || exit 1
 
 # Default command
-CMD ["firemerge", "serve-web", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["firemerge"]
