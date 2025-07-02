@@ -64,15 +64,19 @@ async def upload_statement(request: web.Request) -> web.Response:
             tr.model_dump(mode="json") for tr in statement_transactions
         ]
 
+        message = (
+            f"Successfully uploaded statement "
+            f"with {len(statement_transactions)} transactions"
+        )
         return web.json_response(
             {
                 "success": True,
-                "message": f"Successfully uploaded statement with {len(statement_transactions)} transactions",
+                "message": message,
                 "transaction_count": len(statement_transactions),
             }
         )
 
-    except web.HTTPException as e:
+    except web.HTTPException:
         raise
     except Exception as e:
         raise web.HTTPInternalServerError(text=f"Upload failed: {str(e)}")
@@ -116,7 +120,6 @@ async def transactions(request: web.Request) -> web.Response:
         curr for curr in request.app[CURRENCIES] if curr.id == account.currency_id
     )
     # Calculate start date from statement transactions
-    from datetime import date
 
     start_date = max(tr.date.date() for tr in statement_transactions) - timedelta(
         days=365

@@ -21,7 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "mypy==1.11",
+    "mypy==1.16.1",
     "flake8==7.3.0",
     "flake8-pyproject==1.2.3",
     "black==25.1.0",
@@ -39,6 +39,13 @@ firemerge = "firemerge.main:serve_web"
 plugins = [
   "pydantic.mypy"
 ]
+
+[[tool.mypy.overrides]]
+module = ["thefuzz.*"]
+follow_untyped_imports = true
+
+[tool.flake8]
+max-line-length = 88
 
 [tool.isort]
 profile = "black"

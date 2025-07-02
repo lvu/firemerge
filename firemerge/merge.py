@@ -58,6 +58,7 @@ def parse_foreign_amount(
     if foreign_str is None:
         return None
     m = re.match(r"-?([\d.,]+) (.+)", foreign_str)
+    assert m is not None
     return (
         Money(m.group(1).replace(",", ".")).quantize(Money("0.01")),
         next(curr for curr in currencies if curr.symbol == m.group(2)),
@@ -67,8 +68,10 @@ def parse_foreign_amount(
 def statement_to_transaction(
     st: StatementTransaction, currencies: list[Currency], account_currency: Currency
 ) -> Transaction:
-    foreign_currency = st.foreign_currency_code and next(
-        curr for curr in currencies if curr.code == st.foreign_currency_code
+    foreign_currency = (
+        None
+        if st.foreign_currency_code is None
+        else next(curr for curr in currencies if curr.code == st.foreign_currency_code)
     )
 
     return Transaction(

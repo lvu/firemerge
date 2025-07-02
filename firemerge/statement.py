@@ -1,4 +1,5 @@
 from datetime import datetime
+from io import BytesIO
 from typing import Iterable
 
 import pdfplumber
@@ -26,11 +27,11 @@ def money(s: str) -> Money:
     return Money(s.replace(" ", "").replace(",", "."))
 
 
-def read_statement(fname: str) -> Iterable[StatementTransaction]:
-    with pdfplumber.open(fname) as pdf:
+def read_statement(pdf_data: str | BytesIO) -> Iterable[StatementTransaction]:
+    with pdfplumber.open(pdf_data) as pdf:
         for page in pdf.pages:
             for table in page.find_tables():
-                data = [[translate(c) for c in row] for row in table.extract()]
+                data = [[translate(c) for c in row if c] for row in table.extract()]
                 if data[0] == HEADER:
                     for row in data[1:]:
                         yield StatementTransaction(

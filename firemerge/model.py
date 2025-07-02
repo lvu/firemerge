@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from enum import Enum
 from functools import cached_property
-from typing import Any, Optional, get_args, get_origin
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, field_validator
@@ -11,6 +11,8 @@ from tzlocal import get_localzone
 
 
 class Money(Decimal):
+    def quantize(self, *args, **kwargs) -> "Money":
+        return Money(super().quantize(*args, **kwargs))
 
     @classmethod
     def __get_pydantic_core_schema__(cls, _, handler):
@@ -114,7 +116,7 @@ class Transaction(BaseModel):
 
     @cached_property
     def meta(self) -> dict[str, str]:
-        result = {}
+        result: dict[str, str] = {}
         if self.notes is None:
             return result
 

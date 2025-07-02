@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from aiohttp import web
 from aiohttp_session import AbstractStorage, Session, SessionData

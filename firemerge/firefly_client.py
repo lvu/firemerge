@@ -43,6 +43,7 @@ class FireflyClient:
         url = f"{self.base_url}/api/{path}"
         logger.debug(f"Requesting {url}, params: {params}, data: {json}")
         started_at = monotonic()
+        assert self._session is not None
         async with self._session.request(
             method, url, headers=headers, params=params, json=json
         ) as resp:
