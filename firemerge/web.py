@@ -1,4 +1,5 @@
 import csv
+import logging
 import os
 import os.path
 from datetime import timedelta
@@ -31,6 +32,7 @@ ACCOUNTS = web.AppKey("accounts", list[Account])
 CATEGORIES = web.AppKey("categories", list[Category])
 CURRENCIES = web.AppKey("currencies", list[Currency])
 TRANSACTIONS = web.AppKey("transactions", dict[int, list[Transaction]])
+logger = logging.getLogger(__name__)
 
 
 async def root(request: web.Request) -> web.Response:
@@ -79,6 +81,7 @@ async def upload_statement(request: web.Request) -> web.Response:
     except web.HTTPException:
         raise
     except Exception as e:
+        logger.exception("Upload failed")
         raise web.HTTPInternalServerError(text=f"Upload failed: {str(e)}")
 
 
