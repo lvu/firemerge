@@ -15,7 +15,11 @@ from firemerge.web import serve
 
 def create_client() -> FireflyClient:
     load_dotenv()
-    return FireflyClient(os.getenv("FIREFLY_BASE_URL"), os.getenv("FIREFLY_TOKEN"))
+    base_url = os.getenv("FIREFLY_BASE_URL")
+    token = os.getenv("FIREFLY_TOKEN")
+    if not base_url or not token:
+        raise ValueError("FIREFLY_BASE_URL and FIREFLY_TOKEN must be set in environment or .env file")
+    return FireflyClient(base_url, token)
 
 
 def async_run(func):
@@ -32,11 +36,25 @@ def cli():
 
 
 @cli.command
-@click.argument("filename")
-def merge(filename):
+@click.option("--host", default="0.0.0.0", help="Host to bind to")
+@click.option("--port", default=8080, help="Port to bind to")
+def serve_web(host: str, port: int):
+    """Start the web server for hosted FireMerge"""
     logging.basicConfig(level=logging.DEBUG)
     logging.getLogger("pdfminer").setLevel(logging.ERROR)
-    serve(filename, create_client())
+    serve(create_client(), host=host, port=port)
+
+
+@cli.command
+@click.argument("filename")
+def merge(filename):
+    """Legacy command for local file processing (deprecated)"""
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger("pdfminer").setLevel(logging.ERROR)
+    print("Warning: This command is deprecated. Use 'serve-web' instead for the new hosted interface.")
+    # For backward compatibility, we'll keep this but it's not the recommended approach
+    from firemerge.web import serve as serve_legacy
+    serve_legacy(create_client())
 
 
 @cli.command

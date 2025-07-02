@@ -12,6 +12,9 @@ onload = (event) => {
                 currencies: ref([]),
                 descriptions: ref([]),
                 inProgress: ref(false),
+                selectedFile: ref(null),
+                uploading: ref(false),
+                sessionInfo: ref({ has_upload: false, transaction_count: 0 }),
                 transactionTypes: [
                     {id: "withdrawal", label: "Withdrawal"},
                     {id: "deposit", label: "Deposit"},
@@ -44,15 +47,93 @@ onload = (event) => {
             async loadStaticData() {
                 this.inProgress = true;
                 try {
-                    this.statementTransactions = await this.fetch('/statement');
-                    this.statementTransactions.forEach((tr) => {if (tr.fee) tr.meta.Fee = tr.fee})
                     this.categories = await this.fetch('/categories');
                     this.currencies = await this.fetch('/currencies');
                     await this.loadAccounts();
-                    this.toast.add({ severity: 'success', summary: 'Success', detail: "Static data loaded", life: 3000 });
+                    await this.loadSessionInfo();
+                    this.toast.add({ severity: 'success', summary: 'Success', detail: "Data loaded", life: 3000 });
                  } finally {
                     this.inProgress = false;
                  }
+            },
+            async loadSessionInfo() {
+                this.sessionInfo = await this.fetch('/session_info');
+                if (this.sessionInfo.has_upload) {
+                    await this.loadStatementTransactions();
+                }
+            },
+            async loadStatementTransactions() {
+                this.statementTransactions = await this.fetch('/statement');
+            },
+            async clearSession() {
+                try {
+                    await fetch('/clear_session', { method: 'POST' });
+                    this.statementTransactions = [];
+                    this.transactions = [];
+                    this.assetAccount = null;
+                    await this.loadSessionInfo();
+                    this.toast.add({ severity: 'success', summary: 'Success', detail: "Session cleared", life: 3000 });
+                } catch (error) {
+                    this.toast.add({ severity: 'error', summary: 'Error', detail: error.message, life: 5000 });
+                }
+            },
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (file && file.type === 'application/pdf') {
+                    this.selectedFile = file;
+                } else {
+                    this.toast.add({ severity: 'error', summary: 'Error', detail: 'Please select a valid PDF file', life: 3000 });
+                    this.selectedFile = null;
+                }
+            },
+            async uploadFile() {
+                if (!this.selectedFile) return;
+
+                this.uploading = true;
+                try {
+                    const formData = new FormData();
+                    formData.append('statement', this.selectedFile);
+
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(errorText);
+                    }
+
+                    const result = await response.json();
+                    this.selectedFile = null;
+
+                    // Reload session info and statement transactions
+                    await this.loadSessionInfo();
+
+                    this.toast.add({
+                        severity: 'success',
+                        summary: 'Success',
+                        detail: result.message,
+                        life: 5000
+                    });
+
+                } catch (error) {
+                    this.toast.add({
+                        severity: 'error',
+                        summary: 'Upload Failed',
+                        detail: error.message,
+                        life: 5000
+                    });
+                } finally {
+                    this.uploading = false;
+                }
+            },
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
             },
             async searchDescriptions(e) {
                 console.log(e);
