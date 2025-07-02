@@ -13,7 +13,7 @@ from thefuzz.process import extract
 
 from firemerge.firefly_client import FireflyClient
 from firemerge.merge import merge_transactions
-from firemerge.model import Account, Category, Currency, StatementTransaction, Transaction, AccountType, TransactionType
+from firemerge.model import Account, Category, Currency, StatementTransaction, Transaction, TransactionType
 from firemerge.statement import read_statement
 from firemerge.session_storage import MemoryStorage
 
@@ -54,7 +54,7 @@ async def upload_statement(request: web.Request) -> web.Response:
 
         # Parse the statement
         statement_transactions = list(read_statement(content))
-        session["statement_transactions"] = statement_transactions
+        session["statement_transactions"] = [tr.model_dump(mode="json") for tr in statement_transactions]
 
         return web.json_response({
             "success": True,
@@ -94,7 +94,7 @@ async def currencies(request: web.Request) -> web.Response:
 
 async def transactions(request: web.Request) -> web.Response:
     session = await get_session(request)
-    transactions_data = session.get("statement_transactions")
+    transactions_data = [StatementTransaction.model_validate(tr) for tr in session.get("statement_transactions", [])]
 
     if not transactions_data:
         return web.HTTPNotFound()
@@ -179,6 +179,8 @@ async def taxer_statement(request: web.Request) -> web.Response:
     except ValueError:
         raise web.HTTPBadRequest(text="Invalid start_date format. Use ISO format (YYYY-MM-DD)")
 
+    tax_code = os.getenv("TAX_CODE")
+
     # Get account and currency mappings
     account_map = {
         acc.id: acc.name
@@ -202,7 +204,7 @@ async def taxer_statement(request: web.Request) -> web.Response:
 
         if tr.type is TransactionType.Deposit and tr.destination_id is not None:
             writer.writerow([
-                "TAX_CODE",  # You might want to make this configurable
+                tax_code,
                 tr.date.date().isoformat(),
                 f"{tr.amount:.02f}",
                 "", "", "",
@@ -211,7 +213,7 @@ async def taxer_statement(request: web.Request) -> web.Response:
             ])
         elif tr.type is TransactionType.Transfer and tr.foreign_amount is not None and tr.source_id is not None and tr.destination_id is not None and tr.foreign_currency_id is not None:
             writer.writerow([
-                "TAX_CODE",  # You might want to make this configurable
+                tax_code,
                 tr.date.date().isoformat(),
                 f"{tr.amount:.02f}",
                 "", "Обмін валюти", "",
