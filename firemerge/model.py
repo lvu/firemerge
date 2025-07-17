@@ -1,10 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from functools import cached_property
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from pydantic_core import core_schema
 
 
@@ -27,9 +26,8 @@ class TransactionType(Enum):
 class TransactionState(Enum):
     Matched = "matched"
     Annotated = "annotated"
-    New = "new"
     Unmatched = "unmatched"
-    Enriched = "enriched"
+    New = "new"
 
 
 class AccountType(Enum):
@@ -43,20 +41,12 @@ class AccountType(Enum):
     Liabilities = "liabilities"
 
 
-class StatementTransaction(BaseModel):
-    """Transaction representation as received from bank."""
-
-    name: str
-    date: datetime
-    amount: Money
-    foreign_amount: Optional[Money]
-    foreign_currency_code: Optional[str]
-    meta: dict[str, str]
-    fee: Optional[str] = None
-
-    @cached_property
-    def notes(self) -> str:
-        return "\n".join(f"{k}: {v}" for k, v in self.meta.items())
+class DisplayTransactionType(Enum):
+    Withdrawal = "withdrawal"
+    TransferIn = "transfer-in"
+    TransferOut = "transfer-out"
+    Deposit = "deposit"
+    Reconciliation = "reconciliation"
 
 
 class Account(BaseModel):
@@ -78,22 +68,43 @@ class Currency(BaseModel):
     symbol: str
 
 
+class TransactionCandidate(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    description: str
+    type: DisplayTransactionType
+    category_id: Optional[int] = None
+    account_id: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class DisplayTransaction(BaseModel):
+    id: Optional[int] = None
+    type: DisplayTransactionType
+    state: TransactionState
+    description: str
+    date: datetime
+    amount: Money
+    foreign_amount: Optional[Money]
+    foreign_currency_id: Optional[int]
+    account_id: Optional[int] = None
+    account_name: Optional[str] = None  # for input only
+    category_id: Optional[int] = None
+    notes: Optional[str] = None
+    candidates: list[TransactionCandidate] = []  # for output only
+
+
 class Transaction(BaseModel):
-    """Transaction representation as received from bank."""
+    """Firefly III transaction representation."""
 
     id: Optional[int]
-    state: TransactionState
     type: TransactionType
     date: datetime
     amount: Money
     description: str
     currency_id: int
-    currency_code: str
     foreign_amount: Optional[Money]
     foreign_currency_id: Optional[int]
-    foreign_currency_code: Optional[str]
     category_id: Optional[int] = None
-    category_name: Optional[str] = None
     source_id: Optional[int] = None
     source_name: Optional[str] = None
     destination_id: Optional[int] = None
@@ -101,15 +112,51 @@ class Transaction(BaseModel):
     reconciled: bool = False
     notes: Optional[str] = None
 
-    @cached_property
-    def meta(self) -> dict[str, str]:
-        result: dict[str, str] = {}
-        if self.notes is None:
-            return result
+    def as_candidate(self, current_account_id: int) -> TransactionCandidate:
+        if self.type == TransactionType.Transfer:
+            if self.source_id == current_account_id:
+                trans_type = DisplayTransactionType.TransferOut
+                account_id = self.destination_id
+            elif self.destination_id == current_account_id:
+                trans_type = DisplayTransactionType.TransferIn
+                account_id = self.source_id
+            else:
+                raise ValueError(f"Transaction {self.id} is not related to account {current_account_id}")
+        elif self.type == TransactionType.Withdrawal:
+            trans_type = DisplayTransactionType.Withdrawal
+            account_id = self.destination_id
+        elif self.type == TransactionType.Deposit:
+            trans_type = DisplayTransactionType.Deposit
+            account_id = self.source_id
+        else:
+            raise ValueError(f"Unknown transaction type: {self.type}")
 
-        for line in self.notes.splitlines():
-            line = line.strip()
-            if ":" in line:
-                k, v = line.split(":", 1)
-                result[k] = v
-        return result
+        return TransactionCandidate(
+            description=self.description,
+            type=trans_type,
+            category_id=self.category_id,
+            account_id=account_id,
+            notes=self.notes,
+        )
+
+    def as_display_transaction(self, current_account_id: int) -> DisplayTransaction:
+        return DisplayTransaction.model_validate({
+            **self.as_candidate(current_account_id).model_dump(),
+            "id": self.id,
+            "state": TransactionState.Unmatched,
+            "date": self.date,
+            "amount": self.amount,
+            "foreign_amount": self.foreign_amount,
+            "foreign_currency_id": self.foreign_currency_id,
+        })
+
+
+class StatementTransaction(BaseModel):
+    """Transaction representation as received from bank."""
+    name: str
+    date: datetime
+    amount: Money
+    foreign_amount: Optional[Money]
+    foreign_currency_code: Optional[str]
+    meta: dict[str, str]
+    fee: Optional[str] = None

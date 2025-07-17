@@ -51,7 +51,7 @@ async def upload_statement(request: web.Request) -> web.Response:
             field = await reader.next()
             if field is None:
                 raise web.HTTPBadRequest(text="No statement file provided")
-            if isinstance(field, BodyPartReader) and field.name == "statement":
+            if isinstance(field, BodyPartReader) and field.name == "file":
                 break
 
         # Validate file type
@@ -119,11 +119,7 @@ async def transactions(request: web.Request) -> web.Response:
     ]
 
     if not transactions_data:
-        return web.HTTPNotFound()
-
-    statement_transactions = [
-        StatementTransaction.model_validate(tr) for tr in transactions_data
-    ]
+        return web.HTTPNoContent()
 
     account_id = int(request.query["account_id"])
     account = next(acc for acc in request.app[ACCOUNTS] if acc.id == account_id)
@@ -132,7 +128,7 @@ async def transactions(request: web.Request) -> web.Response:
     )
     # Calculate start date from statement transactions
 
-    start_date = max(tr.date.date() for tr in statement_transactions) - timedelta(
+    start_date = max(tr.date.date() for tr in transactions_data) - timedelta(
         days=365
     )
 
@@ -141,9 +137,9 @@ async def transactions(request: web.Request) -> web.Response:
             tr.model_dump(mode="json")
             for tr in merge_transactions(
                 (await _get_transactions(request.app, account_id, start_date)),
-                statement_transactions,
+                transactions_data,
                 request.app[CURRENCIES],
-                account_currency,
+                account_id,
             )
         ]
     )
@@ -332,16 +328,16 @@ def serve(client: FireflyClient, host: str = "0.0.0.0", port: int = 8080):
     app.add_routes(
         [
             web.get("/", root),
-            web.post("/upload", upload_statement),
-            web.get("/transactions", transactions),
-            web.post("/transaction", store_transaction),
-            web.get("/accounts", accounts),
-            web.get("/categories", categories),
-            web.get("/currencies", currencies),
-            web.get("/descriptions", search_descritions),
-            web.post("/clear_session", clear_session),
-            web.get("/session_info", session_info),
-            web.get("/taxer_statement", taxer_statement),
+            web.post("/api/upload", upload_statement),
+            web.get("/api/transactions", transactions),
+            web.post("/api/transaction", store_transaction),
+            web.get("/api/accounts", accounts),
+            web.get("/api/categories", categories),
+            web.get("/api/currencies", currencies),
+            web.get("/api/descriptions", search_descritions),
+            web.post("/api/clear_session", clear_session),
+            web.get("/api/session_info", session_info),
+            web.get("/api/taxer_statement", taxer_statement),
         ]
     )
     app.cleanup_ctx.append(client_ctx)

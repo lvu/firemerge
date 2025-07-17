@@ -1,42 +1,38 @@
-import re
 from datetime import timedelta
-from decimal import Decimal
-from typing import Optional, Tuple
+from typing import Optional, TypeVar
 
-from thefuzz.process import extractOne
+from thefuzz.process import extractBests
 
 from .model import (
     Currency,
-    Money,
+    DisplayTransaction,
+    DisplayTransactionType,
     StatementTransaction,
     Transaction,
+    TransactionCandidate,
     TransactionState,
-    TransactionType,
 )
 
-"""
-def parse_notes(notes: str) -> dict[str, str]:
-    result = {}
-    for line in notes.split("\n"):
-        line = line.strip()
-"""
+
+MAX_CANDIDATES = 10
+SCORE_CUTOFF = 90
+
+TMatch = TypeVar("TMatch", bound=Transaction | TransactionCandidate)
 
 
-def best_match(
-    tranactions: list[Transaction], st: StatementTransaction
-) -> Optional[Transaction]:
-    for meta_field in [
-        "Description",  # maybe we'll have more at some point?
-    ]:
-        if (value := st.meta.get(meta_field)) is not None:
-            data = {
-                idx: tr.meta.get(meta_field, tr.description)
-                for idx, tr in enumerate(tranactions)
-            }
-            if (best := extractOne(value, data, score_cutoff=90)) is not None:
-                _, _, idx = best
-                return tranactions[idx]
-    return None
+def meta_to_notes(meta: dict[str, str]) -> Optional[str]:
+    return "\n".join(f"{k}: {v}" for k, v in meta.items()) if meta else None
+
+
+def best_matches(
+    candidates: list[TMatch], st: StatementTransaction
+) -> list[TMatch]:
+    data = {idx: tr.notes for idx, tr in enumerate(candidates)}
+    extracted = extractBests(
+        meta_to_notes(st.meta), data,
+        limit=MAX_CANDIDATES, score_cutoff=SCORE_CUTOFF
+    )
+    return [candidates[idx] for _, _, idx in extracted]
 
 
 def match_single_transaction(
@@ -48,87 +44,47 @@ def match_single_transaction(
         if abs(tr.amount) == abs(st.amount)
         and abs(tr.date - st.date) < timedelta(days=1)
     ]
-    if (res := best_match(candidates, st)) is not None:
-        return res
+    if res := best_matches(candidates, st):
+        return res[0]
     return candidates[0] if candidates else None
-
-
-def parse_foreign_amount(
-    foreign_str: str, currencies: list[Currency]
-) -> Tuple[Money, Currency]:
-    if foreign_str is None:
-        return None
-    m = re.match(r"-?([\d.,]+) (.+)", foreign_str)
-    assert m is not None
-    return (
-        Money(Decimal(m.group(1).replace(",", ".")).quantize(Decimal("0.01"))),
-        next(curr for curr in currencies if curr.symbol == m.group(2)),
-    )
-
-
-def statement_to_transaction(
-    st: StatementTransaction, currencies: list[Currency], account_currency: Currency
-) -> Transaction:
-    foreign_currency = (
-        None
-        if st.foreign_currency_code is None
-        else next(curr for curr in currencies if curr.code == st.foreign_currency_code)
-    )
-
-    return Transaction(
-        id=None,
-        state=TransactionState.New,
-        type=TransactionType.Withdrawal if st.amount < 0 else TransactionType.Transfer,
-        date=st.date,
-        amount=abs(st.amount),
-        description=st.name,
-        currency_id=account_currency.id,
-        currency_code=account_currency.code,
-        foreign_amount=st.foreign_amount and abs(st.foreign_amount),
-        foreign_currency_id=(
-            foreign_currency.id if foreign_currency is not None else None
-        ),
-        foreign_currency_code=(
-            foreign_currency.code if foreign_currency is not None else None
-        ),
-        notes=st.notes,
-    )
 
 
 def merge_transactions(
     transactions: list[Transaction],
     statement: list[StatementTransaction],
     currencies: list[Currency],
-    account_currency: Currency,
-) -> list[Transaction]:
+    current_account_id: int,
+) -> list[DisplayTransaction]:
+    candidates = list(set(tr.as_candidate(current_account_id) for tr in transactions))
+    currency_map = {curr.code: curr for curr in currencies}
     transactions.sort(key=lambda tr: tr.date, reverse=True)
     transactions_to_match = transactions[:]
-    result: list[Transaction] = []
+    result: list[DisplayTransaction] = []
     for st in statement:
         if (tr := match_single_transaction(transactions_to_match, st)) is not None:
             transactions_to_match.remove(tr)
-            if tr.notes == st.notes:
-                tr.state = TransactionState.Matched
-            else:
-                tr.notes = st.notes
-                tr.state = TransactionState.Annotated
-            result.append(tr)
+            notes = meta_to_notes(st.meta)
+            result.append(tr.as_display_transaction(current_account_id).model_copy(update={
+                "state": TransactionState.Matched if tr.notes == notes else TransactionState.Annotated,
+                "notes": notes,
+            }))
         else:
-            tr = statement_to_transaction(st, currencies, account_currency)
-            if (source_tr := best_match(transactions, st)) is not None:
-                tr.state = TransactionState.Enriched
-                tr.type = source_tr.type
-                tr.description = source_tr.description
-                tr.category_id = source_tr.category_id
-                tr.category_name = source_tr.category_name
-                tr.source_id = source_tr.source_id
-                tr.source_name = source_tr.source_name
-                tr.destination_id = source_tr.destination_id
-                tr.destination_name = source_tr.destination_name
-            result.append(tr)
+            result.append(DisplayTransaction.model_validate({
+                "type": DisplayTransactionType.Withdrawal if st.amount < 0 else DisplayTransactionType.Deposit,
+                "state": TransactionState.New,
+                "description": st.name,
+                "date": st.date,
+                "amount": abs(st.amount),
+                "foreign_amount": abs(st.foreign_amount) if st.foreign_amount else None,
+                "foreign_currency_id": currency_map[st.foreign_currency_code].id if st.foreign_currency_code else None,
+                "notes": meta_to_notes(st.meta),
+                "candidates": best_matches(candidates, st),
+            }))
+
     min_date = min(st.date for st in statement) - timedelta(days=1)
     for tr in transactions_to_match:
         if tr.date >= min_date:
-            result.append(tr)
+            result.append(tr.as_display_transaction(current_account_id))
+
     result.sort(key=lambda tr: tr.date, reverse=True)
     return result
