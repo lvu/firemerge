@@ -44,8 +44,7 @@ export type TransactionCandidate = {
 };
 
 export type Transaction = {
-  uid: string;
-  id?: number;
+  id: string;
   type: TransactionType;
   state: TransactionState;
   description: string;

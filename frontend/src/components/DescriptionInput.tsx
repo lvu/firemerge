@@ -1,9 +1,7 @@
-import { Autocomplete, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
 import type { Transaction } from '../types/backend';
 import { searchDescriptions } from '../services/backend';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { useDebounce } from '@uidotdev/usehooks';
+import { useDebouncedCallback } from 'use-debounce';
 
 export const DescriptionInput = ({
   accountId,
@@ -14,22 +12,17 @@ export const DescriptionInput = ({
   transaction: Transaction;
   setTransaction: (transaction: Transaction) => void;
 }) => {
-  const [partialDescription, setPartialDescription] = useState<string>('');
-  const debouncedDescription = useDebounce(partialDescription, 500);
-  const { data: options, isLoading } = useQuery({
-    queryKey: ['descriptions', accountId, partialDescription],
-    queryFn: () => searchDescriptions(accountId, partialDescription),
-    enabled: debouncedDescription?.length > 2,
-  });
+  const updateCandidates = useDebouncedCallback((value: string) => {
+    searchDescriptions(accountId, value).then((candidates) =>
+      setTransaction({ ...transaction, candidates }),
+    );
+  }, 500);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTransaction({ ...transaction, description: e.target.value });
+    updateCandidates(e.target.value);
+  };
   return (
-    <Autocomplete
-      freeSolo
-      value={transaction.description ?? ''}
-      options={options ?? []}
-      renderInput={(params) => <TextField {...params} label="Description" />}
-      loading={isLoading}
-      onInputChange={(_, value) => setPartialDescription(value)}
-      onChange={(_, value) => setTransaction({ ...transaction, description: value ?? '' })}
-    />
+    <TextField value={transaction.description ?? ''} onChange={handleChange} label="Description" />
   );
 };

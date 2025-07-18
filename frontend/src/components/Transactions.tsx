@@ -39,15 +39,14 @@ export const Transactions = ({ currentAccount }: { currentAccount: Account | nul
           overflow: 'auto',
         }}
       >
-        {transactions
-          .filter((tr) => (showMatched ? true : tr.state !== 'matched'))
-          .map((tr) => (
-            <TransactionCard
-              key={tr.uid}
-              initialTransaction={tr}
-              currentAccount={currentAccount!}
-            />
-          ))}
+        {transactions.map((tr) => (
+          <TransactionCard
+            key={tr.id}
+            initialTransaction={tr}
+            currentAccount={currentAccount!}
+            visible={showMatched ? true : tr.state !== 'matched'}
+          />
+        ))}
       </Stack>
     </Box>
   );

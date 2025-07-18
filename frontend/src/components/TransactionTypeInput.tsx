@@ -19,11 +19,11 @@ export const TransactionTypeInput = ({
       <ToggleButton value="withdrawal">
         <TransactionTypeLabel type="withdrawal" />
       </ToggleButton>
-      <ToggleButton value="transfer-in">
-        <TransactionTypeLabel type="transfer-in" />
-      </ToggleButton>
       <ToggleButton value="transfer-out">
         <TransactionTypeLabel type="transfer-out" />
+      </ToggleButton>
+      <ToggleButton value="transfer-in">
+        <TransactionTypeLabel type="transfer-in" />
       </ToggleButton>
       <ToggleButton value="deposit">
         <TransactionTypeLabel type="deposit" />

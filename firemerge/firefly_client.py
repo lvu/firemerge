@@ -90,17 +90,18 @@ class FireflyClient:
                 )
 
     async def store_transaction(self, transaction: Transaction) -> Transaction:
+        transction_data = transaction.model_dump(mode="json", exclude_none=True)
         if transaction.id is None:
             resp = await self._request(
                 "v1/transactions",
                 method="POST",
-                json={"transactions": [transaction.model_dump(mode="json")]},
+                json={"transactions": [transction_data]},
             )
         else:
             resp = await self._request(
                 f"v1/transactions/{transaction.id}",
                 method="PUT",
-                json={"transactions": [transaction.model_dump(mode="json")]},
+                json={"transactions": [transction_data]},
             )
         resp_transactions = resp["data"]["attributes"]["transactions"]
         if len(resp_transactions) != 1:

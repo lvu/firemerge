@@ -8,7 +8,7 @@ export default function StatementFileUpload() {
     mutationFn: (file: File) =>
       uploadTransactions(file, Intl.DateTimeFormat().resolvedOptions().timeZone),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
     },
   });
 

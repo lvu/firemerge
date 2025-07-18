@@ -77,7 +77,7 @@ class TransactionCandidate(BaseModel):
 
 
 class DisplayTransaction(BaseModel):
-    id: Optional[int] = None
+    id: str
     type: DisplayTransactionType
     state: TransactionState
     description: str
@@ -144,7 +144,7 @@ class Transaction(BaseModel):
         return DisplayTransaction.model_validate(
             {
                 **self.as_candidate(current_account_id).model_dump(),
-                "id": self.id,
+                "id": str(self.id),
                 "state": TransactionState.Unmatched,
                 "date": self.date,
                 "amount": self.amount,

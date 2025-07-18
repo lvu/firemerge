@@ -1,4 +1,10 @@
-import type { Account, Category, Currency, Transaction } from '../types/backend';
+import type {
+  Account,
+  Category,
+  Currency,
+  Transaction,
+  TransactionCandidate,
+} from '../types/backend';
 
 async function apiFetch<T>(
   input: RequestInfo,
@@ -44,13 +50,7 @@ export async function getTransactions(accountId: number): Promise<Transaction[] 
   const data = await apiFetch<Transaction[]>(`/api/transactions`, {
     account_id: accountId.toString(),
   });
-  if (data === null) {
-    return null;
-  }
-  return data.map((tr) => ({
-    ...tr,
-    uid: crypto.randomUUID(),
-  }));
+  return data;
 }
 
 export async function uploadTransactions(file: File, timezone: string): Promise<void> {
@@ -66,9 +66,22 @@ export async function uploadTransactions(file: File, timezone: string): Promise<
   );
 }
 
-export async function searchDescriptions(accountId: number, query: string): Promise<string[]> {
-  return (await apiFetch<string[]>(`/api/descriptions`, {
+export async function searchDescriptions(
+  accountId: number,
+  query: string,
+): Promise<TransactionCandidate[]> {
+  return (await apiFetch<TransactionCandidate[]>(`/api/descriptions`, {
     account_id: accountId.toString(),
     query,
   }))!;
+}
+
+export async function updateTransaction(
+  account_id: number,
+  transaction: Transaction,
+): Promise<void> {
+  await apiFetch<void>(`/api/transaction`, undefined, {
+    method: 'POST',
+    body: JSON.stringify({ account_id, transaction }),
+  });
 }

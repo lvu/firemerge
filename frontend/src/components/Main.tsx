@@ -9,7 +9,7 @@ export const Main = () => {
   const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
 
   return (
-    <Container maxWidth="md">
+    <Container maxWidth="lg">
       <Stack
         spacing={2}
         sx={{

@@ -4,6 +4,7 @@ import os
 import os.path
 from datetime import timedelta
 from io import BytesIO, StringIO
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 import redis.asyncio as redis
@@ -19,9 +20,12 @@ from firemerge.model import (
     Account,
     Category,
     Currency,
+    DisplayTransaction,
+    DisplayTransactionType,
     StatementTransaction,
     Transaction,
     TransactionType,
+    TransactionState,
 )
 from firemerge.session_storage import MemoryStorage
 from firemerge.statement import read_statement
@@ -129,7 +133,6 @@ async def transactions(request: web.Request) -> web.Response:
         return web.HTTPNoContent()
 
     account_id = int(request.query["account_id"])
-    account = next(acc for acc in request.app[ACCOUNTS] if acc.id == account_id)
 
     # Calculate start date from statement transactions
     start_date = max(tr.date.date() for tr in transactions_data) - timedelta(days=365)
@@ -150,11 +153,59 @@ async def transactions(request: web.Request) -> web.Response:
 async def store_transaction(request: web.Request) -> web.Response:
     data = await request.json()
     account_id = data["account_id"]
-    transaction = Transaction.model_validate(data["transaction"])
+    input_transaction = DisplayTransaction.model_validate(data["transaction"])
+    account = next(a for a in request.app[ACCOUNTS] if a.id == account_id)
+    source_name: Optional[str]
+    destination_name: Optional[str]
+    if input_transaction.type is DisplayTransactionType.Withdrawal:
+        tr_type = TransactionType.Withdrawal
+        source_id = account_id
+        source_name = account.name
+        destination_id = input_transaction.account_id
+        destination_name = input_transaction.account_name
+    elif input_transaction.type is DisplayTransactionType.TransferOut:
+        tr_type = TransactionType.Transfer
+        source_id = account_id
+        source_name = account.name
+        destination_id = input_transaction.account_id
+        destination_name = input_transaction.account_name
+    elif input_transaction.type is DisplayTransactionType.TransferIn:
+        tr_type = TransactionType.Transfer
+        source_id = input_transaction.account_id
+        source_name = input_transaction.account_name
+        destination_id = account_id
+        destination_name = account.name
+    elif input_transaction.type is DisplayTransactionType.Deposit:
+        tr_type = TransactionType.Deposit
+        source_id = input_transaction.account_id
+        source_name = input_transaction.account_name
+        destination_id = account_id
+        destination_name = account.name
+    else:
+        raise web.HTTPBadRequest(text="Invalid transaction type")
+
+    transaction = Transaction(
+        id=None
+        if input_transaction.state is TransactionState.New
+        else int(input_transaction.id),
+        type=tr_type,
+        date=input_transaction.date,
+        amount=input_transaction.amount,
+        description=input_transaction.description,
+        currency_id=account.currency_id,
+        foreign_amount=input_transaction.foreign_amount,
+        foreign_currency_id=input_transaction.foreign_currency_id,
+        category_id=input_transaction.category_id,
+        source_id=source_id,
+        source_name=source_name if source_id is None else None,
+        destination_id=destination_id,
+        destination_name=destination_name if destination_id is None else None,
+        notes=input_transaction.notes,
+    )
     new_transaction = await request.app[FIREFLY_CLIENT].store_transaction(transaction)
 
     app_transactions = await _get_transactions(request.app, account_id)
-    if transaction.id is None:
+    if input_transaction.state is TransactionState.New:
         app_transactions.append(new_transaction)
     else:
         idx = next(
@@ -180,9 +231,10 @@ async def search_descritions(request: web.Request) -> web.Response:
     account_id = int(request.query["account_id"])
     query = request.query["query"]
     app_transactions = await _get_transactions(request.app, account_id)
-    descriptions = {tr.description for tr in app_transactions}
-    result = extract(query, descriptions)
-    return web.json_response([choice for (choice, _) in result])
+    candidates = list(set(tr.as_candidate(account_id) for tr in app_transactions))
+    data = {idx: tr.description for idx, tr in enumerate(candidates)}
+    result = [candidates[idx] for _, _, idx in extract(query, data)]
+    return web.json_response([tr.model_dump(mode="json") for tr in result])
 
 
 async def clear_session(request: web.Request) -> web.Response:

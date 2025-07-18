@@ -38,13 +38,9 @@ plugins = [
 module = ["thefuzz.*"]
 follow_untyped_imports = true
 
-[tool.flake8]
-max-line-length = 88
-
-[tool.isort]
-profile = "black"
-
 [tool.taskipy.tasks]
 mypy = "mypy firemerge"
 ruff = "ruff format firemerge"
-checks = "task ruff && task mypy"
+fe-lint = "cd frontend && npm run lint"
+fe-check = "cd frontend && npm run check"
+checks = "task ruff && task mypy && task fe-lint && task fe-check"

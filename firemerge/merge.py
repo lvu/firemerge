@@ -1,5 +1,6 @@
 from datetime import timedelta
 from typing import Optional, TypeVar
+from hashlib import md5
 
 from thefuzz.process import extractBests
 
@@ -57,7 +58,7 @@ def merge_transactions(
     transactions.sort(key=lambda tr: tr.date, reverse=True)
     transactions_to_match = transactions[:]
     result: list[DisplayTransaction] = []
-    for st in statement:
+    for idx, st in enumerate(statement):
         if (tr := match_single_transaction(transactions_to_match, st)) is not None:
             transactions_to_match.remove(tr)
             notes = meta_to_notes(st.meta)
@@ -75,6 +76,7 @@ def merge_transactions(
             result.append(
                 DisplayTransaction.model_validate(
                     {
+                        "id": f"fake:{idx}:{md5(st.model_dump_json().encode()).hexdigest()}",
                         "type": DisplayTransactionType.Withdrawal
                         if st.amount < 0
                         else DisplayTransactionType.Deposit,
