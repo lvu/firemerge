@@ -2,7 +2,7 @@ import { Backdrop, CircularProgress } from '@mui/material';
 import { useIsFetching } from '@tanstack/react-query';
 
 export const GlobalLoader = () => {
-    const isFetching = useIsFetching();
+    const isFetching = useIsFetching({ queryKey: ['global'] });
 
     return (
         <Backdrop

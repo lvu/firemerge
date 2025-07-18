@@ -43,6 +43,7 @@ async def root(request: web.Request) -> web.Response:
 async def upload_statement(request: web.Request) -> web.Response:
     """Handle file upload for bank statement"""
     try:
+        logger.info("upload start")
         reader = await request.multipart()
 
         # Find the file field
@@ -50,13 +51,13 @@ async def upload_statement(request: web.Request) -> web.Response:
         while True:
             field = await reader.next()
             if field is None:
-                raise web.HTTPBadRequest(text="No statement file provided")
+                return web.HTTPBadRequest(text="No statement file provided")
             if isinstance(field, BodyPartReader) and field.name == "file":
                 break
 
         # Validate file type
         if not field.filename or not field.filename.lower().endswith(".pdf"):
-            raise web.HTTPBadRequest(text="Only PDF files are supported")
+            return web.HTTPBadRequest(text="Only PDF files are supported")
 
         content = BytesIO(await field.read())
         session = await get_session(request)
@@ -91,6 +92,8 @@ async def upload_statement(request: web.Request) -> web.Response:
     except Exception as e:
         logger.exception("Upload failed")
         raise web.HTTPInternalServerError(text=f"Upload failed: {str(e)}")
+    finally:
+        logger.info("upload end")
 
 
 async def accounts(request: web.Request) -> web.Response:
@@ -112,6 +115,7 @@ async def currencies(request: web.Request) -> web.Response:
 
 
 async def transactions(request: web.Request) -> web.Response:
+    logger.info("transactions start")
     session = await get_session(request)
     transactions_data = [
         StatementTransaction.model_validate(tr)
@@ -119,15 +123,13 @@ async def transactions(request: web.Request) -> web.Response:
     ]
 
     if not transactions_data:
+        logger.warning("No statement transactions found, %s", "statement_transactions" in session)
         return web.HTTPNoContent()
 
     account_id = int(request.query["account_id"])
     account = next(acc for acc in request.app[ACCOUNTS] if acc.id == account_id)
-    account_currency = next(
-        curr for curr in request.app[CURRENCIES] if curr.id == account.currency_id
-    )
-    # Calculate start date from statement transactions
 
+    # Calculate start date from statement transactions
     start_date = max(tr.date.date() for tr in transactions_data) - timedelta(
         days=365
     )
@@ -180,7 +182,7 @@ async def search_descritions(request: web.Request) -> web.Response:
     app_transactions = await _get_transactions(request.app, account_id)
     descriptions = {tr.description for tr in app_transactions}
     result = extract(query, descriptions)
-    return web.json_response([choice for (choice, score) in result])
+    return web.json_response([choice for (choice, _) in result])
 
 
 async def clear_session(request: web.Request) -> web.Response:

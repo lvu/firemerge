@@ -1,17 +1,21 @@
 import { useQuery } from '@tanstack/react-query';
 import { getTransactions } from '../services/backend';
-import { Alert } from '@mui/material';
+import { Alert, Box, FormControlLabel, Stack, Switch } from '@mui/material';
 import type { Account } from '../types/backend';
+import { TransactionCard } from './TransactionCard';
+import { useState } from 'react';
 
 export const Transactions = ({ currentAccount }: { currentAccount: Account | null }) => {
+    const [showMatched, setShowMatched] = useState(true);
     const { data: transactions, error } = useQuery({
-        queryKey: ['transactions', currentAccount?.id],
+        queryKey: ['global', 'transactions', currentAccount?.id],
         queryFn: () => {
             if (!currentAccount) {
                 return null;
             }
             return getTransactions(currentAccount.id);
         },
+        staleTime: Infinity,
     });
 
     if (error) {
@@ -22,8 +26,17 @@ export const Transactions = ({ currentAccount }: { currentAccount: Account | nul
     }
 
     return (
-        <div>
-            <h1>Transactions: {transactions?.length}</h1>
-        </div>
+        <Box>
+            <FormControlLabel control={<Switch checked={showMatched} onChange={() => setShowMatched(!showMatched)} />} label="Show matched" />
+            <Stack spacing={2} sx={{
+                bgcolor: 'background.paper',
+                flexGrow: 1,
+                overflow: 'auto',
+            }}>
+                {transactions.filter(tr => showMatched ? true : tr.state !== "matched").map(tr => (
+                    <TransactionCard key={tr.uid} initialTransaction={tr} currentAccount={currentAccount!} />
+                ))}
+            </Stack>
+        </Box>
     )
 }

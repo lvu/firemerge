@@ -6,7 +6,7 @@ import { Alert, FormControl, InputLabel, MenuItem, Select } from '@mui/material'
 
 
 export const CurrentAccount = ({ currentAccount, setCurrentAccount }: { currentAccount: Account | null, setCurrentAccount: (account: Account | null) => void }) => {
-    const { data: accounts, error } = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() });
+    const { data: accounts, error } = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts(), staleTime: Infinity });
     const assetAccounts = new Map<number, Account>(accounts?.filter(a => a.type === 'asset').map(a => [a.id, a]) ?? []);
 
     if (error) {
