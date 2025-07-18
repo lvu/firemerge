@@ -6,23 +6,26 @@ import { Transactions } from './Transactions';
 import { Divider, Container, Typography, Stack } from '@mui/material';
 
 export const Main = () => {
-    const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
+  const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
 
-    return (
-      <Container maxWidth="md">
-        <Stack spacing={2} sx={{
+  return (
+    <Container maxWidth="md">
+      <Stack
+        spacing={2}
+        sx={{
           display: 'flex',
           flexDirection: 'column',
           height: '100vh',
-        }}>
-          <Typography variant="h4" component="h1">
-            Firemerge
-          </Typography>
-          <CurrentAccount currentAccount={currentAccount} setCurrentAccount={setCurrentAccount} />
-          <StatementFileUpload />
-          <Divider />
-          <Transactions currentAccount={currentAccount} />
-        </Stack>
-      </Container>
-    )
-}
+        }}
+      >
+        <Typography variant="h4" component="h1">
+          Firemerge
+        </Typography>
+        <CurrentAccount currentAccount={currentAccount} setCurrentAccount={setCurrentAccount} />
+        <StatementFileUpload />
+        <Divider />
+        <Transactions currentAccount={currentAccount} />
+      </Stack>
+    </Container>
+  );
+};

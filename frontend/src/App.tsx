@@ -10,7 +10,7 @@ function App() {
       <GlobalLoader />
       <Main />
     </QueryClientProvider>
-  )
+  );
 }
 
-export default App
+export default App;
