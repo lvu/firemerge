@@ -19,11 +19,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "mypy==1.16.1",
-    "flake8==7.3.0",
-    "flake8-pyproject==1.2.3",
-    "black==25.1.0",
+    "ruff==0.12.4",
     "taskipy==1.14.1",
-    "isort==6.0.1",
 ]
 
 [tool.setuptools]
@@ -48,8 +45,6 @@ max-line-length = 88
 profile = "black"
 
 [tool.taskipy.tasks]
-isort = "isort firemerge"
-lint = "flake8 firemerge"
 mypy = "mypy firemerge"
-black = "black firemerge"
-checks = "task isort && task black && task lint && task mypy"
+ruff = "ruff format firemerge"
+checks = "task ruff && task mypy"

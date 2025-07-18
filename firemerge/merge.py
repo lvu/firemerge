@@ -24,13 +24,10 @@ def meta_to_notes(meta: dict[str, str]) -> Optional[str]:
     return "\n".join(f"{k}: {v}" for k, v in meta.items()) if meta else None
 
 
-def best_matches(
-    candidates: list[TMatch], st: StatementTransaction
-) -> list[TMatch]:
+def best_matches(candidates: list[TMatch], st: StatementTransaction) -> list[TMatch]:
     data = {idx: tr.notes for idx, tr in enumerate(candidates)}
     extracted = extractBests(
-        meta_to_notes(st.meta), data,
-        limit=MAX_CANDIDATES, score_cutoff=SCORE_CUTOFF
+        meta_to_notes(st.meta), data, limit=MAX_CANDIDATES, score_cutoff=SCORE_CUTOFF
     )
     return [candidates[idx] for _, _, idx in extracted]
 
@@ -64,22 +61,38 @@ def merge_transactions(
         if (tr := match_single_transaction(transactions_to_match, st)) is not None:
             transactions_to_match.remove(tr)
             notes = meta_to_notes(st.meta)
-            result.append(tr.as_display_transaction(current_account_id).model_copy(update={
-                "state": TransactionState.Matched if tr.notes == notes else TransactionState.Annotated,
-                "notes": notes,
-            }))
+            result.append(
+                tr.as_display_transaction(current_account_id).model_copy(
+                    update={
+                        "state": TransactionState.Matched
+                        if tr.notes == notes
+                        else TransactionState.Annotated,
+                        "notes": notes,
+                    }
+                )
+            )
         else:
-            result.append(DisplayTransaction.model_validate({
-                "type": DisplayTransactionType.Withdrawal if st.amount < 0 else DisplayTransactionType.Deposit,
-                "state": TransactionState.New,
-                "description": st.name,
-                "date": st.date,
-                "amount": abs(st.amount),
-                "foreign_amount": abs(st.foreign_amount) if st.foreign_amount else None,
-                "foreign_currency_id": currency_map[st.foreign_currency_code].id if st.foreign_currency_code else None,
-                "notes": meta_to_notes(st.meta),
-                "candidates": best_matches(candidates, st),
-            }))
+            result.append(
+                DisplayTransaction.model_validate(
+                    {
+                        "type": DisplayTransactionType.Withdrawal
+                        if st.amount < 0
+                        else DisplayTransactionType.Deposit,
+                        "state": TransactionState.New,
+                        "description": st.name,
+                        "date": st.date,
+                        "amount": abs(st.amount),
+                        "foreign_amount": abs(st.foreign_amount)
+                        if st.foreign_amount
+                        else None,
+                        "foreign_currency_id": currency_map[st.foreign_currency_code].id
+                        if st.foreign_currency_code
+                        else None,
+                        "notes": meta_to_notes(st.meta),
+                        "candidates": best_matches(candidates, st),
+                    }
+                )
+            )
 
     min_date = min(st.date for st in statement) - timedelta(days=1)
     for tr in transactions_to_match:

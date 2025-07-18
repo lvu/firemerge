@@ -1,5 +1,5 @@
 import { Table, TableCell, TableRow, TableHead, TableBody } from "@mui/material";
-import type { Transaction, TransactionCandidate, TransactionType } from "../types/backend";
+import type { Transaction, TransactionCandidate } from "../types/backend";
 import { useQuery } from "@tanstack/react-query";
 import { getAccounts, getCategories } from "../services/backend";
 import { TransactionTypeLabel } from "./TransactionTypeLabel";

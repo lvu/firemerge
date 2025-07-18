@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class FireflyClient:
-
     def __init__(self, base_url: str, token: str):
         self.base_url = base_url.rstrip("/")
         self.token = token

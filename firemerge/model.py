@@ -8,7 +8,6 @@ from pydantic_core import core_schema
 
 
 class Money(Decimal):
-
     @classmethod
     def __get_pydantic_core_schema__(cls, _, handler):
         return core_schema.no_info_after_validator_function(
@@ -121,7 +120,9 @@ class Transaction(BaseModel):
                 trans_type = DisplayTransactionType.TransferIn
                 account_id = self.source_id
             else:
-                raise ValueError(f"Transaction {self.id} is not related to account {current_account_id}")
+                raise ValueError(
+                    f"Transaction {self.id} is not related to account {current_account_id}"
+                )
         elif self.type == TransactionType.Withdrawal:
             trans_type = DisplayTransactionType.Withdrawal
             account_id = self.destination_id
@@ -140,19 +141,22 @@ class Transaction(BaseModel):
         )
 
     def as_display_transaction(self, current_account_id: int) -> DisplayTransaction:
-        return DisplayTransaction.model_validate({
-            **self.as_candidate(current_account_id).model_dump(),
-            "id": self.id,
-            "state": TransactionState.Unmatched,
-            "date": self.date,
-            "amount": self.amount,
-            "foreign_amount": self.foreign_amount,
-            "foreign_currency_id": self.foreign_currency_id,
-        })
+        return DisplayTransaction.model_validate(
+            {
+                **self.as_candidate(current_account_id).model_dump(),
+                "id": self.id,
+                "state": TransactionState.Unmatched,
+                "date": self.date,
+                "amount": self.amount,
+                "foreign_amount": self.foreign_amount,
+                "foreign_currency_id": self.foreign_currency_id,
+            }
+        )
 
 
 class StatementTransaction(BaseModel):
     """Transaction representation as received from bank."""
+
     name: str
     date: datetime
     amount: Money

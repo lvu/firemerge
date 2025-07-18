@@ -15,7 +15,7 @@ async function apiFetch<T>(
         try {
             const json = await res.json();
             message = json.message || message;
-        } catch (_) {
+        } catch {
             // body not JSON
         }
         throw new Error(message);

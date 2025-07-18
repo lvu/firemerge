@@ -1,5 +1,6 @@
-import { Box, Chip, Stack, Typography } from "@mui/material";
-import type { Account, Transaction as TransactionType } from "../types/backend";
+import { Box, Stack, Typography } from "@mui/material";
+import { alpha, useTheme } from "@mui/material/styles";
+import type { Account, Transaction } from "../types/backend";
 import { useState } from "react";
 import { TransactionTypeInput } from "./TransactionTypeInput";
 import { DescriptionInput } from "./DescriptionInput";
@@ -12,13 +13,14 @@ const dateFormat = new Intl.DateTimeFormat(navigator.language, {
     timeStyle: 'short',
 });
 
-export const TransactionCard = ({ initialTransaction, currentAccount }: { initialTransaction: TransactionType, currentAccount: Account }) => {
-    const [transaction, setTransaction] = useState<TransactionType>(initialTransaction);
+export const TransactionCard = ({ initialTransaction, currentAccount }: { initialTransaction: Transaction, currentAccount: Account }) => {
+    const [transaction, setTransaction] = useState<Transaction>(initialTransaction);
+    const theme = useTheme();
     const chipColor = {
-        new: 'info',
-        matched: 'text.disabled',
-        annotated: 'success',
-        unmatched: 'error',
+        new: theme.palette.info.main,
+        matched: theme.palette.text.secondary,
+        annotated: theme.palette.success.main,
+        unmatched: theme.palette.warning.main,
     }[transaction.state];
     return <Stack sx={{
         p: 2,
@@ -27,13 +29,10 @@ export const TransactionCard = ({ initialTransaction, currentAccount }: { initia
         borderRadius: 2,
         border: '1px solid',
         borderColor: 'divider',
-        '&:hover': {
-            bgcolor: 'action.hover',
-        },
+        backgroundColor: alpha(chipColor, 0.1),
     }}>
         <Box sx={{ pb: 2 }}>
             <TransactionTypeInput transaction={transaction} setTransaction={setTransaction} />
-            <Chip label={transaction.state} color={chipColor} size="medium" sx={{ width: 0.2, mx: 4 }} />
         </Box>
         <Stack direction="row" spacing={2} sx={{ display: 'flex' }}>
             <Stack direction="column" spacing={2} sx={{ flex: 1 }}>

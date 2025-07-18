@@ -123,16 +123,16 @@ async def transactions(request: web.Request) -> web.Response:
     ]
 
     if not transactions_data:
-        logger.warning("No statement transactions found, %s", "statement_transactions" in session)
+        logger.warning(
+            "No statement transactions found, %s", "statement_transactions" in session
+        )
         return web.HTTPNoContent()
 
     account_id = int(request.query["account_id"])
     account = next(acc for acc in request.app[ACCOUNTS] if acc.id == account_id)
 
     # Calculate start date from statement transactions
-    start_date = max(tr.date.date() for tr in transactions_data) - timedelta(
-        days=365
-    )
+    start_date = max(tr.date.date() for tr in transactions_data) - timedelta(days=365)
 
     return web.json_response(
         [
