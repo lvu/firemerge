@@ -1,7 +1,6 @@
 import type { Account } from '../types/backend';
-import { useQuery } from '@tanstack/react-query';
-import { getAccounts } from '../services/backend';
 import { Alert, FormControl, InputLabel, MenuItem, Select } from '@mui/material';
+import { useAccounts } from '../hooks/backend';
 
 export const CurrentAccount = ({
   currentAccount,
@@ -10,14 +9,10 @@ export const CurrentAccount = ({
   currentAccount: Account | null;
   setCurrentAccount: (account: Account | null) => void;
 }) => {
-  const { data: accounts, error } = useQuery({
-    queryKey: ['accounts'],
-    queryFn: () => getAccounts(),
-    staleTime: Infinity,
-  });
-  const assetAccounts = new Map<number, Account>(
-    accounts?.filter((a) => a.type === 'asset').map((a) => [a.id, a]) ?? [],
-  );
+  const { data: accounts, error } = useAccounts();
+  const assetAccounts = Object.values(accounts ?? {})
+    .filter((a) => a.type === 'asset')
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   if (error) {
     return <Alert severity="error">Error: {error.message}</Alert>;
@@ -30,10 +25,10 @@ export const CurrentAccount = ({
         labelId="current-account-label"
         label="Current account"
         value={currentAccount?.id ?? ''}
-        onChange={(e) => setCurrentAccount(assetAccounts.get(Number(e.target.value)) || null)}
+        onChange={(e) => setCurrentAccount(accounts?.[Number(e.target.value)] ?? null)}
         name="current-account"
       >
-        {Array.from(assetAccounts.values()).map((account) => (
+        {assetAccounts.map((account) => (
           <MenuItem key={account.id} value={account.id}>
             {account.name}
           </MenuItem>

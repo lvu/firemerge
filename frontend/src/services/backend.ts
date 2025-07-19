@@ -4,6 +4,7 @@ import type {
   Currency,
   Transaction,
   TransactionCandidate,
+  TransactionUpdateResponse,
 } from '../types/backend';
 
 async function apiFetch<T>(
@@ -34,16 +35,34 @@ async function apiFetch<T>(
   return res.json();
 }
 
-export async function getAccounts(): Promise<Account[]> {
-  return (await apiFetch<Account[]>('/api/accounts'))!;
+export async function getAccounts(): Promise<Record<number, Account>> {
+  return (await apiFetch<Account[]>('/api/accounts'))!.reduce(
+    (acc, account) => {
+      acc[account.id] = account;
+      return acc;
+    },
+    {} as Record<number, Account>,
+  );
 }
 
-export async function getCategories(): Promise<Category[]> {
-  return (await apiFetch<Category[]>('/api/categories'))!;
+export async function getCategories(): Promise<Record<number, Category>> {
+  return (await apiFetch<Category[]>('/api/categories'))!.reduce(
+    (acc, category) => {
+      acc[category.id] = category;
+      return acc;
+    },
+    {} as Record<number, Category>,
+  );
 }
 
-export async function getCurrencies(): Promise<Currency[]> {
-  return (await apiFetch<Currency[]>('/api/currencies'))!;
+export async function getCurrencies(): Promise<Record<number, Currency>> {
+  return (await apiFetch<Currency[]>('/api/currencies'))!.reduce(
+    (acc, currency) => {
+      acc[currency.id] = currency;
+      return acc;
+    },
+    {} as Record<number, Currency>,
+  );
 }
 
 export async function getTransactions(accountId: number): Promise<Transaction[] | null> {
@@ -79,9 +98,9 @@ export async function searchDescriptions(
 export async function updateTransaction(
   account_id: number,
   transaction: Transaction,
-): Promise<void> {
-  await apiFetch<void>(`/api/transaction`, undefined, {
+): Promise<TransactionUpdateResponse> {
+  return (await apiFetch<TransactionUpdateResponse>(`/api/transaction`, undefined, {
     method: 'POST',
     body: JSON.stringify({ account_id, transaction }),
-  });
+  }))!;
 }

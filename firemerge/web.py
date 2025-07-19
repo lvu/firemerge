@@ -26,6 +26,7 @@ from firemerge.model import (
     Transaction,
     TransactionType,
     TransactionState,
+    TransactionUpdateResponse,
 )
 from firemerge.session_storage import MemoryStorage
 from firemerge.statement import read_statement
@@ -213,6 +214,12 @@ async def store_transaction(request: web.Request) -> web.Response:
         )
         app_transactions[idx] = new_transaction
     app_transactions.sort(key=lambda tr: tr.date, reverse=True)
+    response = TransactionUpdateResponse(
+        transaction=new_transaction.as_display_transaction(account_id).model_copy(
+            update={"state": TransactionState.Matched}
+        ),
+        account=None,
+    )
 
     new_acc_id = None
     if transaction.source_id is None:
@@ -223,8 +230,9 @@ async def store_transaction(request: web.Request) -> web.Response:
         request.app[ACCOUNTS].append(
             await request.app[FIREFLY_CLIENT].get_account(new_acc_id)
         )
+        response.account = await request.app[FIREFLY_CLIENT].get_account(new_acc_id)
 
-    return web.json_response(new_transaction.model_dump(mode="json"))
+    return web.json_response(response.model_dump(mode="json"))
 
 
 async def search_descritions(request: web.Request) -> web.Response:

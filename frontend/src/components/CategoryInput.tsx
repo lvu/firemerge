@@ -1,7 +1,6 @@
 import { Autocomplete, TextField } from '@mui/material';
-import type { Category, Transaction } from '../types/backend';
-import { useQuery } from '@tanstack/react-query';
-import { getCategories } from '../services/backend';
+import type { Transaction } from '../types/backend';
+import { useCategories } from '../hooks/backend';
 
 export const CategoryInput = ({
   transaction,
@@ -10,16 +9,12 @@ export const CategoryInput = ({
   transaction: Transaction;
   setTransaction: (transaction: Transaction) => void;
 }) => {
-  const { data: categories, isLoading } = useQuery<Category[]>({
-    queryKey: ['global', 'categories'],
-    queryFn: () => getCategories(),
-    staleTime: Infinity,
-  });
+  const { data: categories, isLoading } = useCategories();
   return (
     <Autocomplete
-      options={categories ?? []}
+      options={Object.values(categories ?? {}).sort((a, b) => a.name.localeCompare(b.name))}
       getOptionLabel={(option) => option.name}
-      value={categories?.find((c) => c.id === transaction.category_id) ?? { id: -1, name: '' }}
+      value={categories?.[transaction.category_id!] ?? { id: -1, name: '' }}
       renderInput={(params) => <TextField {...params} label="Category" />}
       loading={isLoading}
       onChange={(_, value) => setTransaction({ ...transaction, category_id: value?.id })}

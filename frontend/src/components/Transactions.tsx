@@ -1,22 +1,12 @@
-import { useQuery } from '@tanstack/react-query';
-import { getTransactions } from '../services/backend';
 import { Alert, Box, FormControlLabel, Stack, Switch } from '@mui/material';
 import type { Account } from '../types/backend';
 import { TransactionCard } from './TransactionCard';
 import { useState } from 'react';
+import { useTransactions } from '../hooks/backend';
 
 export const Transactions = ({ currentAccount }: { currentAccount: Account | null }) => {
   const [showMatched, setShowMatched] = useState(true);
-  const { data: transactions, error } = useQuery({
-    queryKey: ['global', 'transactions', currentAccount?.id],
-    queryFn: () => {
-      if (!currentAccount) {
-        return null;
-      }
-      return getTransactions(currentAccount.id);
-    },
-    staleTime: Infinity,
-  });
+  const { data: transactions, error } = useTransactions(currentAccount?.id);
 
   if (error) {
     return <Alert severity="error">Error: {error.message}</Alert>;

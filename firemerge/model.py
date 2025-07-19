@@ -164,3 +164,10 @@ class StatementTransaction(BaseModel):
     foreign_currency_code: Optional[str]
     meta: dict[str, str]
     fee: Optional[str] = None
+
+
+class TransactionUpdateResponse(BaseModel):
+    """Response from Firefly III when updating a transaction."""
+
+    transaction: DisplayTransaction
+    account: Optional[Account]

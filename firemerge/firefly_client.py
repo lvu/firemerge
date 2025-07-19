@@ -24,6 +24,7 @@ class FireflyClient:
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        assert self._session is not None
         await self._session.__aexit__(exc_type, exc_val, exc_tb)
 
     async def _request(

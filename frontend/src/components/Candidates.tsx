@@ -1,9 +1,8 @@
 import { Table, TableCell, TableRow, TableHead, TableBody, Tooltip, Box } from '@mui/material';
 import type { Transaction, TransactionCandidate } from '../types/backend';
-import { useQuery } from '@tanstack/react-query';
 import type { Category, Account } from '../types/backend';
-import { getAccounts, getCategories } from '../services/backend';
 import { TransactionTypeLabel } from './TransactionTypeLabel';
+import { useAccounts, useCategories } from '../hooks/backend';
 
 const CandidateRow = ({
   candidate,
@@ -13,8 +12,8 @@ const CandidateRow = ({
   setTransaction,
 }: {
   candidate: TransactionCandidate;
-  categories: Category[];
-  accounts: Account[];
+  categories: Record<number, Category>;
+  accounts: Record<number, Account>;
   transaction: Transaction;
   setTransaction: (transaction: Transaction) => void;
 }) => {
@@ -49,8 +48,8 @@ const CandidateRow = ({
           <TransactionTypeLabel type={candidate.type} />
         </TableCell>
         <TableCell>{candidate.description}</TableCell>
-        <TableCell>{categories?.find((c) => c.id === candidate.category_id)?.name}</TableCell>
-        <TableCell>{accounts?.find((a) => a.id === candidate.account_id)?.name}</TableCell>
+        <TableCell>{categories?.[candidate.category_id!]?.name ?? ''}</TableCell>
+        <TableCell>{accounts?.[candidate.account_id!]?.name ?? ''}</TableCell>
       </TableRow>
     </Tooltip>
   );
@@ -63,16 +62,8 @@ export const Candidates = ({
   transaction: Transaction;
   setTransaction: (transaction: Transaction) => void;
 }) => {
-  const { data: categories } = useQuery({
-    queryKey: ['global', 'categories'],
-    queryFn: () => getCategories(),
-    staleTime: Infinity,
-  });
-  const { data: accounts } = useQuery({
-    queryKey: ['global', 'accounts'],
-    queryFn: () => getAccounts(),
-    staleTime: Infinity,
-  });
+  const { data: categories } = useCategories();
+  const { data: accounts } = useAccounts();
 
   if (transaction.state !== 'new' || !transaction.candidates) {
     return null;

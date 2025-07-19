@@ -1,9 +1,8 @@
 import { Autocomplete, TextField, type FilterOptionsState } from '@mui/material';
 import { createFilterOptions } from '@mui/material/Autocomplete';
 import type { Account, AccountType, Transaction } from '../types/backend';
-import { useQuery } from '@tanstack/react-query';
-import { getAccounts } from '../services/backend';
 import { useRef } from 'react';
+import { useAccounts } from '../hooks/backend';
 
 const filter = createFilterOptions<Account>();
 
@@ -15,11 +14,7 @@ export const AccountInput = ({
   setTransaction: (transaction: Transaction) => void;
 }) => {
   const newAccount = useRef<Account | null>(null);
-  const { data: allAccounts, isLoading } = useQuery<Account[]>({
-    queryKey: ['global', 'accounts'],
-    queryFn: () => getAccounts(),
-    staleTime: Infinity,
-  });
+  const { data: allAccounts, isLoading } = useAccounts();
   const accountTypes: AccountType[] =
     {
       withdrawal: ['expense' as AccountType, 'liabilities' as AccountType, 'debt' as AccountType],
@@ -28,7 +23,9 @@ export const AccountInput = ({
       deposit: ['revenue' as AccountType, 'debt' as AccountType, 'liabilities' as AccountType],
       reconciliation: [],
     }[transaction.type] ?? [];
-  const accounts = allAccounts?.filter((a) => accountTypes.includes(a.type)) ?? [];
+  const accounts = Object.values(allAccounts ?? {})
+    .filter((a) => accountTypes.includes(a.type))
+    .sort((a, b) => a.id - b.id);
   if (newAccount.current) {
     accounts.push(newAccount.current);
   }

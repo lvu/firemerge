@@ -59,3 +59,8 @@ export type Transaction = {
   notes?: string;
   candidates: TransactionCandidate[];
 };
+
+export type TransactionUpdateResponse = {
+  transaction: Transaction;
+  account?: Account;
+};

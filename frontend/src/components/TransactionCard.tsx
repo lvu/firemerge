@@ -7,9 +7,8 @@ import { DescriptionInput } from './DescriptionInput';
 import { CategoryInput } from './CategoryInput';
 import { AccountInput } from './AccountInput';
 import { Candidates } from './Candidates';
-import { getCurrencies, updateTransaction } from '../services/backend';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader } from './Loader';
+import { useCurrencies, useUpdateTransaction } from '../hooks/backend';
 
 const dateFormat = new Intl.DateTimeFormat(navigator.language, {
   hour12: false,
@@ -26,27 +25,17 @@ export const TransactionCard = ({
   currentAccount: Account;
   visible: boolean;
 }) => {
-  const queryClient = useQueryClient();
-  const { data: currencies } = useQuery({
-    queryKey: ['global', 'currencies'],
-    queryFn: () => getCurrencies(),
-    staleTime: Infinity,
-  });
+  const { data: currencies } = useCurrencies();
+  const [transaction, setTransaction] = useState<Transaction>(initialTransaction);
   const {
     mutate: updateTransactionMutation,
     isPending,
     error,
-  } = useMutation({
-    mutationFn: (transaction: Transaction) => updateTransaction(currentAccount.id, transaction),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['global', 'transactions', currentAccount.id] });
-      queryClient.invalidateQueries({ queryKey: ['global', 'accounts'] });
-    },
-  });
-  const [transaction, setTransaction] = useState<Transaction>(initialTransaction);
+  } = useUpdateTransaction(currentAccount.id, transaction);
+
   const theme = useTheme();
 
-  if (!visible) return null;
+  if (!visible || !transaction) return null;
 
   const bgColor = {
     new: theme.palette.info.main,
@@ -54,7 +43,7 @@ export const TransactionCard = ({
     annotated: theme.palette.success.main,
     unmatched: theme.palette.warning.main,
   }[transaction.state];
-  const currencySymbol = currencies?.find((c) => c.id === currentAccount.currency_id)?.symbol;
+  const currencySymbol = currencies?.[currentAccount.currency_id]?.symbol ?? '';
   return (
     <Stack
       component="fieldset"
@@ -67,6 +56,7 @@ export const TransactionCard = ({
         border: '1px solid',
         borderColor: 'divider',
         backgroundColor: alpha(bgColor, 0.1),
+        position: 'relative',
       }}
     >
       <Loader open={isPending} />
@@ -88,9 +78,7 @@ export const TransactionCard = ({
               <Button
                 variant="contained"
                 color={error ? 'error' : 'primary'}
-                onClick={() => {
-                  updateTransactionMutation(transaction);
-                }}
+                onClick={() => updateTransactionMutation()}
               >
                 Save
               </Button>

@@ -1,16 +1,10 @@
 import { Alert, Button, Stack } from '@mui/material';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { uploadTransactions } from '../services/backend';
+import { useUploadTransactions } from '../hooks/backend';
 
 export default function StatementFileUpload() {
-  const queryClient = useQueryClient();
-  const { mutate, isPending, error } = useMutation({
-    mutationFn: (file: File) =>
-      uploadTransactions(file, Intl.DateTimeFormat().resolvedOptions().timeZone),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
-    },
-  });
+  const { mutate, isPending, error } = useUploadTransactions(
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  );
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
