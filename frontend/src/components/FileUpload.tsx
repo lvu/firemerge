@@ -1,23 +1,20 @@
-import { Alert, Button, Stack } from '@mui/material';
-import { useUploadTransactions } from '../hooks/backend';
+import { CircularProgress, IconButton, Stack, Tooltip } from '@mui/material';
+import { UploadOutlined } from '@mui/icons-material';
 
-export default function StatementFileUpload() {
-  const { mutate, isPending, error } = useUploadTransactions(
-    Intl.DateTimeFormat().resolvedOptions().timeZone,
-  );
-
+export default function StatementFileUpload({ uploadTransactions, isUploading }: { uploadTransactions: (f: File) => void, isUploading: boolean }) {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
-    mutate(e.target.files[0]);
+    uploadTransactions(e.target.files[0]);
   };
 
   return (
     <Stack spacing={2}>
-      {error && <Alert severity="error">{error.message}</Alert>}
-      <Button variant="contained" component="label" disabled={isPending}>
-        {isPending ? 'Uploading...' : 'Upload bank statement'}
-        <input type="file" hidden onChange={handleFileChange} />
-      </Button>
+      <Tooltip title="Upload bank statement">
+        <IconButton component="label" disabled={isUploading} color="inherit">
+          {isUploading ? <CircularProgress size={20} /> : <UploadOutlined />}
+          <input type="file" hidden onChange={handleFileChange} />
+        </IconButton>
+      </Tooltip>
     </Stack>
   );
 }

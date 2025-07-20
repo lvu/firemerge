@@ -19,14 +19,15 @@ export const CurrentAccount = ({
   }
 
   return (
-    <FormControl sx={{ width: 0.8 }}>
-      <InputLabel id="current-account-label">Current account</InputLabel>
+    <FormControl sx={{ color: 'inherit', minWidth: 300 }} variant="filled">
+      <InputLabel id="current-account-label" sx={{ color: 'inherit' }}>Current account</InputLabel>
       <Select
         labelId="current-account-label"
         label="Current account"
         value={currentAccount?.id ?? ''}
         onChange={(e) => setCurrentAccount(accounts?.[Number(e.target.value)] ?? null)}
         name="current-account"
+        sx={{ color: 'inherit' }}
       >
         {assetAccounts.map((account) => (
           <MenuItem key={account.id} value={account.id}>

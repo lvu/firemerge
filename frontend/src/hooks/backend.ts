@@ -32,10 +32,10 @@ export const useUpdateTransaction = (accountId: number | undefined, transaction:
   });
 };
 
-export const useUploadTransactions = (timezone: string) => {
+export const useUploadTransactions = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (f: File) => uploadTransactions(f, timezone),
+    mutationFn: (f: File) => uploadTransactions(f, Intl.DateTimeFormat().resolvedOptions().timeZone),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
     },
