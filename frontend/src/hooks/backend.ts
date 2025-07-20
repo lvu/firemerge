@@ -48,6 +48,7 @@ export const useTransactions = (accountId?: number) => {
     queryKey: ['global', 'transactions', accountId],
     queryFn: () => getTransactions(accountId!),
     enabled: !!accountId,
+    staleTime: Infinity,
   });
 };
 
@@ -55,6 +56,7 @@ export const useAccounts = () => {
   return useQuery<Record<number, Account>>({
     queryKey: ['global', 'accounts'],
     queryFn: getAccounts,
+    staleTime: Infinity,
   });
 };
 
@@ -62,6 +64,7 @@ export const useCategories = () => {
   return useQuery<Record<number, Category>>({
     queryKey: ['global', 'categories'],
     queryFn: getCategories,
+    staleTime: Infinity,
   });
 };
 
@@ -69,5 +72,6 @@ export const useCurrencies = () => {
   return useQuery<Record<number, Currency>>({
     queryKey: ['global', 'currencies'],
     queryFn: getCurrencies,
+    staleTime: Infinity,
   });
 };

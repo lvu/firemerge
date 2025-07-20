@@ -77,7 +77,8 @@ async def upload_statement(
         try:
             statement_transactions = list(StatementReader.read(content, tz))
         except Exception as e:
-            raise HTTPException(status_code=400, detail=str(e))
+            logger.exception("Upload failed")
+            raise HTTPException(status_code=400, detail=str(e)) from e
 
         session_data.statement = statement_transactions
 
@@ -134,7 +135,7 @@ async def get_transactions(
 
 @router.post("/api/transaction")
 async def store_transaction(
-    account_id: Annotated[int, Body(...)],
+    account_id: Annotated[int, Query(...)],
     transaction: Annotated[DisplayTransaction, Body(...)],
     session_data: SessionDataDep,
     accounts: AccountsDep,

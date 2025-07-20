@@ -114,7 +114,7 @@ class PrivatStatementReader(StatementReader):
             assert isinstance(values[6], (float, int))
             yield StatementTransaction(
                 name=str(values[3]),
-                date=datetime.strptime(str(row[0]), "%d.%m.%Y %H:%M:%S").replace(
+                date=datetime.strptime(str(values[0]), "%d.%m.%Y %H:%M:%S").replace(
                     tzinfo=self.tz
                 ),
                 amount=self._money(values[4]),

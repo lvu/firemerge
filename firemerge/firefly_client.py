@@ -34,20 +34,19 @@ class FireflyClient:
             "X-Trace-Id": str(uuid4()),
         }
         url = f"{self.base_url}/api/{path}"
-        logger.debug(f"Requesting {url}, params: {params}, data: {json}")
+        logger.info(f"Requesting {url}, params: {params}, data: {json}")
         started_at = monotonic()
         assert self._client is not None
         resp = await self._client.request(
             method, url, headers=headers, params=params, json=json, timeout=TIMEOUT
         )
-        logger.debug(f"Got response in {monotonic() - started_at:.2}s")
         if resp.status_code != 200:
             raise HTTPStatusError(
                 request=resp.request, response=resp, message=resp.text
             )
         data = resp.json()
-        logger.debug(
-            f"Got response for {url} in {monotonic() - started_at:.2}s: {len(data)} bytes"
+        logger.info(
+            f"Got response for {url} in {monotonic() - started_at:0.2f}s: {len(data)} bytes"
         )
         return data
 
