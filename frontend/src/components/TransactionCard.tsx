@@ -1,4 +1,15 @@
-import { Button, Chip, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import {
+  Button,
+  Card,
+  CardActions,
+  CardContent,
+  CardHeader,
+  Chip,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { alpha, useTheme } from '@mui/material/styles';
 import type { Account, Transaction } from '../types/backend';
 import { useState } from 'react';
@@ -37,6 +48,8 @@ export const TransactionCard = ({
 
   if (!visible || !transaction) return null;
 
+  const isEditable = transaction.state === 'new' || transaction.state === 'annotated';
+
   const bgColor = {
     new: theme.palette.info.main,
     matched: theme.palette.text.secondary,
@@ -45,64 +58,67 @@ export const TransactionCard = ({
   }[transaction.state];
   const currencySymbol = currencies?.[currentAccount.currency_id]?.symbol ?? '';
   return (
-    <Stack
+    <Card
       component="fieldset"
-      disabled={transaction.state !== 'new' && transaction.state !== 'annotated'}
+      disabled={!isEditable}
       sx={{
-        p: 2,
-        bgcolor: 'background.paper',
-        boxShadow: 1,
-        borderRadius: 2,
-        border: '1px solid',
-        borderColor: 'divider',
         backgroundColor: alpha(bgColor, 0.1),
-        position: 'relative',
       }}
     >
       <Loader open={isPending} />
-      <Stack direction="row" spacing={2} sx={{ display: 'flex' }}>
-        <Typography variant="h6" sx={{ flex: 1 }}>
-          {currencySymbol}
-          {transaction.amount}
-        </Typography>
-        <Typography variant="subtitle1" sx={{ flex: 1 }}>
-          {dateFormat.format(Date.parse(transaction.date))}
-        </Typography>
-        <Chip label={transaction.state} sx={{ flex: 0, alignSelf: 'flex-end' }} />
-      </Stack>
-      <Stack direction="row" spacing={2} sx={{ display: 'flex' }}>
-        <Stack direction="column" spacing={2} sx={{ flex: 1 }}>
-          <Stack direction="row" justifyContent="space-between" spacing={2}>
-            <TransactionTypeInput transaction={transaction} setTransaction={setTransaction} />
-            <Tooltip title={error?.message ?? ''}>
-              <Button
-                variant="contained"
-                color={error ? 'error' : 'primary'}
-                onClick={() => updateTransactionMutation()}
-              >
-                Save
-              </Button>
-            </Tooltip>
+      <CardHeader
+        title={
+          <Typography variant="h6" sx={{ flex: 1 }}>
+            {currencySymbol}
+            {transaction.amount}
+          </Typography>
+        }
+        subheader={
+          <Typography variant="subtitle1" sx={{ flex: 1 }}>
+            {dateFormat.format(Date.parse(transaction.date))}
+          </Typography>
+        }
+        action={<Chip label={transaction.state} sx={{ flex: 0, alignSelf: 'flex-end' }} />}
+      />
+      <CardContent>
+        <Stack direction="row" spacing={2} sx={{ display: 'flex' }}>
+          <Stack direction="column" spacing={2} sx={{ flex: 1 }}>
+            <Stack direction="row" justifyContent="space-between" spacing={2}>
+              <TransactionTypeInput transaction={transaction} setTransaction={setTransaction} />
+            </Stack>
+            <DescriptionInput
+              accountId={currentAccount.id}
+              transaction={transaction}
+              setTransaction={setTransaction}
+            />
+            <CategoryInput transaction={transaction} setTransaction={setTransaction} />
+            <AccountInput transaction={transaction} setTransaction={setTransaction} />
+            <TextField
+              label="Notes"
+              value={transaction.notes ?? ''}
+              multiline
+              rows={3}
+              onChange={(e) => setTransaction({ ...transaction, notes: e.target.value })}
+            />
           </Stack>
-          <DescriptionInput
-            accountId={currentAccount.id}
-            transaction={transaction}
-            setTransaction={setTransaction}
-          />
-          <CategoryInput transaction={transaction} setTransaction={setTransaction} />
-          <AccountInput transaction={transaction} setTransaction={setTransaction} />
-          <TextField
-            label="Notes"
-            value={transaction.notes ?? ''}
-            multiline
-            rows={3}
-            onChange={(e) => setTransaction({ ...transaction, notes: e.target.value })}
-          />
+          <Stack direction="column" spacing={2} sx={{ flex: 1 }}>
+            <Candidates transaction={transaction} setTransaction={setTransaction} />
+          </Stack>
         </Stack>
-        <Stack direction="column" spacing={2} sx={{ flex: 1 }}>
-          <Candidates transaction={transaction} setTransaction={setTransaction} />
-        </Stack>
-      </Stack>
-    </Stack>
+      </CardContent>
+      {isEditable && (
+        <CardActions>
+          <Tooltip title={error?.message ?? ''}>
+            <Button
+              variant="contained"
+              color={error ? 'error' : 'primary'}
+              onClick={() => updateTransactionMutation()}
+            >
+              Save
+            </Button>
+          </Tooltip>
+        </CardActions>
+      )}
+    </Card>
   );
 };
