@@ -63,6 +63,7 @@ export const TransactionCard = ({
       disabled={!isEditable}
       sx={{
         backgroundColor: alpha(bgColor, 0.1),
+        position: 'relative',
       }}
     >
       <Loader open={isPending} />

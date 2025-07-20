@@ -20,7 +20,9 @@ export const CurrentAccount = ({
 
   return (
     <FormControl sx={{ color: 'inherit', minWidth: 300 }} variant="filled">
-      <InputLabel id="current-account-label" sx={{ color: 'inherit' }}>Current account</InputLabel>
+      <InputLabel id="current-account-label" sx={{ color: 'inherit' }}>
+        Current account
+      </InputLabel>
       <Select
         labelId="current-account-label"
         label="Current account"

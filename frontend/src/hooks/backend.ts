@@ -35,7 +35,8 @@ export const useUpdateTransaction = (accountId: number | undefined, transaction:
 export const useUploadTransactions = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (f: File) => uploadTransactions(f, Intl.DateTimeFormat().resolvedOptions().timeZone),
+    mutationFn: (f: File) =>
+      uploadTransactions(f, Intl.DateTimeFormat().resolvedOptions().timeZone),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
     },

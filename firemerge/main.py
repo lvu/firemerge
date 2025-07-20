@@ -2,24 +2,28 @@ import logging
 import os
 import urllib.parse
 
-from firemerge.firefly_client import FireflyClient
-from firemerge.web import serve
+from fastapi import FastAPI
+import uvicorn
+
+from firemerge.api import router
+from firemerge.deps import lifespan
 
 
-def create_client() -> FireflyClient:
-    base_url = os.getenv("FIREFLY_BASE_URL")
-    token = os.getenv("FIREFLY_TOKEN")
-    if not base_url or not token:
-        raise ValueError(
-            "FIREFLY_BASE_URL and FIREFLY_TOKEN must be set in environment or .env file"
-        )
-    return FireflyClient(base_url, token)
+PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend")
+
+
+app = FastAPI(title="FireMerge API", version="1.0.0", lifespan=lifespan)
+app.include_router(router)
 
 
 def serve_web():
     """Start the web server for hosted FireMerge"""
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig()
+    logging.getLogger("firemerge").setLevel(logging.DEBUG)
     logging.getLogger("pdfminer").setLevel(logging.ERROR)
     listen_url = urllib.parse.urlparse("//" + os.getenv("LISTEN_URL", "0.0.0.0:8080"))
     assert listen_url.hostname and listen_url.port
-    serve(create_client(), host=listen_url.hostname, port=int(listen_url.port))
+    uvicorn.run(
+        app, host=listen_url.hostname, port=int(listen_url.port), log_level="info"
+    )

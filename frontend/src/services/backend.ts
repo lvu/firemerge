@@ -102,5 +102,8 @@ export async function updateTransaction(
   return (await apiFetch<TransactionUpdateResponse>(`/api/transaction`, undefined, {
     method: 'POST',
     body: JSON.stringify({ account_id, transaction }),
+    headers: {
+      'Content-Type': 'application/json',
+    },
   }))!;
 }

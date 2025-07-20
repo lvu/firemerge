@@ -5,27 +5,20 @@ from time import monotonic
 from typing import AsyncIterable, Optional, Self
 from uuid import uuid4
 
-from aiohttp import ClientResponseError, ClientSession
+from httpx import AsyncClient, HTTPStatusError
 
 from firemerge.model import Account, Category, Currency, Transaction, TransactionState
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn.error")
+
+TIMEOUT = 300
 
 
 class FireflyClient:
-    def __init__(self, base_url: str, token: str):
+    def __init__(self, http_client: AsyncClient, base_url: str, token: str):
         self.base_url = base_url.rstrip("/")
         self.token = token
-        self._session: Optional[ClientSession] = None
-
-    async def __aenter__(self) -> Self:
-        self._session = ClientSession()
-        await self._session.__aenter__()
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        assert self._session is not None
-        await self._session.__aexit__(exc_type, exc_val, exc_tb)
+        self._client = http_client
 
     async def _request(
         self,
@@ -43,24 +36,20 @@ class FireflyClient:
         url = f"{self.base_url}/api/{path}"
         logger.debug(f"Requesting {url}, params: {params}, data: {json}")
         started_at = monotonic()
-        assert self._session is not None
-        async with self._session.request(
-            method, url, headers=headers, params=params, json=json
-        ) as resp:
-            logger.debug(f"Got response in {monotonic() - started_at:.2}s")
-            if not resp.ok:
-                data = await resp.text()
-                raise ClientResponseError(
-                    resp.request_info,
-                    resp.history,
-                    status=resp.status,
-                    message=f"{resp.reason}\n{data}",
-                    headers=resp.headers,
-                )
-            started_at = monotonic()
-            data = await resp.json()
-            logger.debug(f"Read {len(data)} response in {monotonic() - started_at:.2}s")
-            return data
+        assert self._client is not None
+        resp = await self._client.request(
+            method, url, headers=headers, params=params, json=json, timeout=TIMEOUT
+        )
+        logger.debug(f"Got response in {monotonic() - started_at:.2}s")
+        if resp.status_code != 200:
+            raise HTTPStatusError(
+                request=resp.request, response=resp, message=resp.text
+            )
+        data = resp.json()
+        logger.debug(
+            f"Got response for {url} in {monotonic() - started_at:.2}s: {len(data)} bytes"
+        )
+        return data
 
     async def _paging_get(
         self, path: str, params: Optional[dict] = None

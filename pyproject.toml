@@ -8,13 +8,15 @@ description = "Firefly merge/import GUI"
 version = "0.1.0"
 readme = "README.md"
 dependencies = [
-    "aiohttp ~= 3.10.0",
-    "aiohttp-session ~= 2.12.0",
+    "fastapi ~= 0.104.0",
+    "httpx ~= 0.27.0",
     "openpyxl ~= 3.1.5",
     "pydantic ~= 2.9.0",
     "thefuzz ~= 0.22.0",
     "pdfplumber ~= 0.11.6",
+    "python-multipart ~= 0.0.20",
     "redis ~= 5.0.0",
+    "uvicorn[standard] ~= 0.24.0",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +25,7 @@ dev = [
     "ruff==0.12.4",
     "taskipy==1.14.1",
     "ipython==8.25.0",
+    "types-openpyxl~=3.1.5",
 ]
 
 [tool.setuptools]

@@ -11,7 +11,6 @@ from .model import Money, StatementTransaction
 
 
 class StatementReader:
-
     def __init__(self, data: BytesIO, tz: ZoneInfo):
         self.data = data
         self.tz = tz
@@ -51,26 +50,30 @@ class AvalStatementReader(StatementReader):
     def _money(s: str) -> Money:
         return Money(s.replace(" ", "").replace(",", "."))
 
-
     def _read(self) -> Iterable[StatementTransaction]:
         found = False
         with pdfplumber.open(self.data) as pdf:
             for page in pdf.pages:
                 for table in page.find_tables():
                     data = [
-                        [self._translate(c) if c else "" for c in row] for row in table.extract()
+                        [self._translate(c) if c else "" for c in row]
+                        for row in table.extract()
                     ]
                     if data[0] == self.HEADER:
                         found = True
                         for row in data[1:]:
                             yield StatementTransaction(
                                 name=row[4],
-                                date=datetime.strptime(row[0], "%d.%m.%Y %H:%M").replace(
-                                    tzinfo=self.tz
-                                ),
+                                date=datetime.strptime(
+                                    row[0], "%d.%m.%Y %H:%M"
+                                ).replace(tzinfo=self.tz),
                                 amount=self._money(row[5]),
-                                foreign_amount=self._money(row[6]) if row[5] == row[6] else None,
-                                foreign_currency_code=row[7] if row[5] == row[6] else None,
+                                foreign_amount=self._money(row[6])
+                                if row[5] == row[6]
+                                else None,
+                                foreign_currency_code=row[7]
+                                if row[5] == row[6]
+                                else None,
                                 meta={"Op Type": row[3], "Description": row[4]},
                             )
             if not found:
@@ -88,7 +91,7 @@ class PrivatStatementReader(StatementReader):
         "Сума в валюті транзакції",
         "Валюта транзакції",
         "Залишок на кінець періоду",
-        "Валюта залишку"
+        "Валюта залишку",
     ]
 
     @staticmethod
@@ -102,18 +105,24 @@ class PrivatStatementReader(StatementReader):
             raise ValueError("No active sheet")
         seen_header = False
         for row in ws.iter_rows():
-            row = [cell.value for cell in row]
+            values = [cell.value for cell in row]
             if not seen_header:
-                if row == self.HEADER:
+                if values == self.HEADER:
                     seen_header = True
                 continue
-            assert isinstance(row[4], (float, int))
-            assert isinstance(row[6], (float, int))
+            assert isinstance(values[4], (float, int))
+            assert isinstance(values[6], (float, int))
             yield StatementTransaction(
-                name=str(row[3]),
-                date=datetime.strptime(str(row[0]), "%d.%m.%Y %H:%M:%S").replace(tzinfo=self.tz),
-                amount=self._money(row[4]),
-                foreign_amount=self._money(row[6]) if row[4] == row[6] else None,
-                foreign_currency_code=str(row[5]) if row[4] == row[6] else None,
-                meta={"Category": str(row[1]), "Description": str(row[3])},
+                name=str(values[3]),
+                date=datetime.strptime(str(row[0]), "%d.%m.%Y %H:%M:%S").replace(
+                    tzinfo=self.tz
+                ),
+                amount=self._money(values[4]),
+                foreign_amount=self._money(values[6])
+                if values[4] == values[6]
+                else None,
+                foreign_currency_code=str(values[5])
+                if values[4] == values[6]
+                else None,
+                meta={"Category": str(values[1]), "Description": str(values[3])},
             )
