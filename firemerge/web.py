@@ -29,7 +29,7 @@ from firemerge.model import (
     TransactionUpdateResponse,
 )
 from firemerge.session_storage import MemoryStorage
-from firemerge.statement import read_statement
+from firemerge.statement import StatementReader
 
 PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
 FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend")
@@ -48,7 +48,6 @@ async def root(request: web.Request) -> web.Response:
 async def upload_statement(request: web.Request) -> web.Response:
     """Handle file upload for bank statement"""
     try:
-        logger.info("upload start")
         reader = await request.multipart()
 
         # Find the file field
@@ -59,10 +58,6 @@ async def upload_statement(request: web.Request) -> web.Response:
                 return web.HTTPBadRequest(text="No statement file provided")
             if isinstance(field, BodyPartReader) and field.name == "file":
                 break
-
-        # Validate file type
-        if not field.filename or not field.filename.lower().endswith(".pdf"):
-            return web.HTTPBadRequest(text="Only PDF files are supported")
 
         content = BytesIO(await field.read())
         session = await get_session(request)
@@ -75,7 +70,12 @@ async def upload_statement(request: web.Request) -> web.Response:
             tz = ZoneInfo("UTC")
 
         # Parse the statement
-        statement_transactions = list(read_statement(content, tz))
+        try:
+            statement_transactions = list(StatementReader.read(content, tz))
+        except Exception as e:
+            logger.exception("Failed to read statement")
+            return web.HTTPBadRequest(text=str(e))
+
         session["statement_transactions"] = [
             tr.model_dump(mode="json") for tr in statement_transactions
         ]
@@ -97,8 +97,6 @@ async def upload_statement(request: web.Request) -> web.Response:
     except Exception as e:
         logger.exception("Upload failed")
         raise web.HTTPInternalServerError(text=f"Upload failed: {str(e)}")
-    finally:
-        logger.info("upload end")
 
 
 async def accounts(request: web.Request) -> web.Response:

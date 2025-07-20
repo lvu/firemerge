@@ -10,6 +10,7 @@ readme = "README.md"
 dependencies = [
     "aiohttp ~= 3.10.0",
     "aiohttp-session ~= 2.12.0",
+    "openpyxl ~= 3.1.5",
     "pydantic ~= 2.9.0",
     "thefuzz ~= 0.22.0",
     "pdfplumber ~= 0.11.6",
@@ -21,6 +22,7 @@ dev = [
     "mypy==1.16.1",
     "ruff==0.12.4",
     "taskipy==1.14.1",
+    "ipython==8.25.0",
 ]
 
 [tool.setuptools]
