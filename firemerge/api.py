@@ -6,25 +6,14 @@ from io import BytesIO, StringIO
 from typing import Annotated, List, Optional
 from zoneinfo import ZoneInfo
 
-import redis.asyncio as redis
-import uvicorn
 from fastapi import (
     APIRouter,
-    Depends,
-    FastAPI,
-    File,
-    Form,
     HTTPException,
     Query,
-    Request,
     Response,
     UploadFile,
     Body,
 )
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 from thefuzz.process import extract
 
 from firemerge.firefly_client import FireflyClient
@@ -35,7 +24,6 @@ from firemerge.model import (
     Currency,
     DisplayTransaction,
     DisplayTransactionType,
-    StatementTransaction,
     Transaction,
     TransactionType,
     TransactionState,
@@ -45,9 +33,6 @@ from firemerge.statement import StatementReader
 from firemerge.deps import (
     FireflyClientDep,
     SessionDataDep,
-    CurrenciesDep,
-    AccountsDep,
-    CategoriesDep,
 )
 from firemerge.session import SessionData
 
@@ -90,18 +75,18 @@ async def upload_statement(
 
 
 @router.get("/api/accounts")
-async def get_accounts(accounts: AccountsDep) -> List[Account]:
-    return accounts
+async def get_accounts(firefly_client: FireflyClientDep) -> List[Account]:
+    return await firefly_client.get_accounts()
 
 
 @router.get("/api/categories")
-async def get_categories(categories: CategoriesDep) -> List[Category]:
-    return categories
+async def get_categories(firefly_client: FireflyClientDep) -> List[Category]:
+    return await firefly_client.get_categories()
 
 
 @router.get("/api/currencies")
-async def get_currencies(currencies: CurrenciesDep) -> List[Currency]:
-    return currencies
+async def get_currencies(firefly_client: FireflyClientDep) -> List[Currency]:
+    return await firefly_client.get_currencies()
 
 
 @router.get("/api/transactions")
@@ -109,7 +94,6 @@ async def get_transactions(
     account_id: Annotated[int, Query(...)],
     session_data: SessionDataDep,
     firefly_client: FireflyClientDep,
-    currencies: CurrenciesDep,
 ) -> List[DisplayTransaction]:
     """Get merged transactions for an account"""
     logger.info("transactions start")
@@ -126,7 +110,7 @@ async def get_transactions(
     merged_transactions = merge_transactions(
         await _get_transactions(account_id, start_date, session_data, firefly_client),
         transactions_data,
-        currencies,
+        await firefly_client.get_currencies(),
         account_id,
     )
 
@@ -138,11 +122,10 @@ async def store_transaction(
     account_id: Annotated[int, Query(...)],
     transaction: Annotated[DisplayTransaction, Body(...)],
     session_data: SessionDataDep,
-    accounts: AccountsDep,
     firefly_client: FireflyClientDep,
 ) -> TransactionUpdateResponse:
     """Store a transaction"""
-    account = next(a for a in accounts if a.id == account_id)
+    account = await firefly_client.get_account(account_id)
 
     # Determine transaction type and IDs
     source_name: Optional[str]
@@ -258,8 +241,6 @@ async def get_taxer_statement(
     start_date: Annotated[
         str, Query(..., description="Start date in ISO format (YYYY-MM-DD)")
     ],
-    accounts: AccountsDep,
-    currencies: CurrenciesDep,
     firefly_client: FireflyClientDep,
 ):
     """Generate taxer statement CSV for selected account"""
@@ -274,15 +255,17 @@ async def get_taxer_statement(
     tax_code = os.getenv("TAX_CODE", "TAX_CODE")
 
     # Get account and currency mappings
-    account_map = {acc.id: acc.name for acc in accounts}
-    currency_map = {curr.id: curr.code for curr in currencies}
+    account_map = {acc.id: acc.name for acc in await firefly_client.get_accounts()}
+    currency_map = {
+        curr.id: curr.code for curr in await firefly_client.get_currencies()
+    }
 
     # Generate CSV content
     output = StringIO()
     writer = csv.writer(output)
 
     seen_transactions = set()
-    async for tr in firefly_client.get_transactions(account_id, start_date_dt.date()):
+    for tr in await firefly_client.get_transactions(account_id, start_date_dt.date()):
         if tr.id in seen_transactions:
             continue
         seen_transactions.add(tr.id)
@@ -344,6 +327,6 @@ async def _get_transactions(
         if start_date is None:
             start_date = date.today() - timedelta(days=365)
         session_data.transactions[account_id] = [
-            tr async for tr in firefly_client.get_transactions(account_id, start_date)
+            tr for tr in await firefly_client.get_transactions(account_id, start_date)
         ]
     return session_data.transactions[account_id]

@@ -1,17 +1,21 @@
 import logging
+import os
 from datetime import date
 from itertools import count
 from time import monotonic
 from typing import AsyncIterable, Optional, Self
 from uuid import uuid4
 
+from aiocache import cached
 from httpx import AsyncClient, HTTPStatusError
 
 from firemerge.model import Account, Category, Currency, Transaction, TransactionState
+from firemerge.util import async_collect
 
 logger = logging.getLogger("uvicorn.error")
 
 TIMEOUT = 300
+CACHE_TTL = 600
 
 
 class FireflyClient:
@@ -19,6 +23,23 @@ class FireflyClient:
         self.base_url = base_url.rstrip("/")
         self.token = token
         self._client = http_client
+        self.get_accounts = cached(ttl=CACHE_TTL)(self.get_accounts)  # type: ignore
+        self.get_account = cached(ttl=CACHE_TTL)(self.get_account)  # type: ignore
+        self.get_categories = cached(ttl=CACHE_TTL)(self.get_categories)  # type: ignore
+        self.get_currencies = cached(ttl=CACHE_TTL)(self.get_currencies)  # type: ignore
+        self.get_transactions = cached(ttl=CACHE_TTL)(  # type: ignore
+            self.get_transactions
+        )
+
+    @classmethod
+    def from_env(cls, http_client: AsyncClient) -> Self:
+        base_url = os.getenv("FIREFLY_BASE_URL")
+        token = os.getenv("FIREFLY_TOKEN")
+        if not base_url or not token:
+            raise ValueError(
+                "FIREFLY_BASE_URL and FIREFLY_TOKEN must be set in environment or .env file"
+            )
+        return cls(http_client, base_url, token)
 
     async def _request(
         self,
@@ -45,9 +66,7 @@ class FireflyClient:
                 request=resp.request, response=resp, message=resp.text
             )
         data = resp.json()
-        logger.info(
-            f"Got response for {url} in {monotonic() - started_at:0.2f}s: {len(data)} bytes"
-        )
+        logger.info(f"Got response for {url} in {monotonic() - started_at:0.2f}s")
         return data
 
     async def _paging_get(
@@ -62,6 +81,7 @@ class FireflyClient:
             if resp["meta"]["pagination"]["total_pages"] <= page:
                 break
 
+    @async_collect
     async def get_transactions(
         self, account_id: int, start: date
     ) -> AsyncIterable[Transaction]:
@@ -103,6 +123,7 @@ class FireflyClient:
             }
         )
 
+    @async_collect
     async def get_accounts(self) -> AsyncIterable[Account]:
         async for row in self._paging_get("v1/accounts", {"limit": 1000}):
             yield Account.model_validate({**row["attributes"], "id": row["id"]})
@@ -113,10 +134,12 @@ class FireflyClient:
             {**resp["data"]["attributes"], "id": resp["data"]["id"]}
         )
 
+    @async_collect
     async def get_categories(self) -> AsyncIterable[Category]:
         async for row in self._paging_get("v1/categories"):
             yield Category(id=row["id"], name=row["attributes"]["name"])
 
+    @async_collect
     async def get_currencies(self) -> AsyncIterable[Currency]:
         async for row in self._paging_get("v1/currencies"):
             yield Currency.model_validate({**row["attributes"], "id": row["id"]})

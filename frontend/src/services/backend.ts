@@ -99,13 +99,17 @@ export async function updateTransaction(
   account_id: number,
   transaction: Transaction,
 ): Promise<TransactionUpdateResponse> {
-  return (await apiFetch<TransactionUpdateResponse>(`/api/transaction`, {
-    account_id: account_id.toString(),
-  }, {
-    method: 'POST',
-    body: JSON.stringify(transaction),
-    headers: {
-      'Content-Type': 'application/json',
+  return (await apiFetch<TransactionUpdateResponse>(
+    `/api/transaction`,
+    {
+      account_id: account_id.toString(),
     },
-  }))!;
+    {
+      method: 'POST',
+      body: JSON.stringify(transaction),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  ))!;
 }
