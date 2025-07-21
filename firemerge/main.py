@@ -1,8 +1,10 @@
 import logging
 import os
+from uuid import uuid4
 import urllib.parse
 
 from fastapi import FastAPI
+from starlette.middleware.sessions import SessionMiddleware
 import uvicorn
 
 from firemerge.api import router
@@ -15,6 +17,7 @@ FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend")
 
 app = FastAPI(title="FireMerge API", version="1.0.0", lifespan=lifespan)
 app.include_router(router)
+app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", uuid4().hex))
 
 
 def serve_web():

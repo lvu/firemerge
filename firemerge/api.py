@@ -32,9 +32,8 @@ from firemerge.model import (
 from firemerge.statement import StatementReader
 from firemerge.deps import (
     FireflyClientDep,
-    SessionDataDep,
+    SessionDep,
 )
-from firemerge.session import SessionData
 
 
 logger = logging.getLogger("uvicorn.error")
@@ -46,7 +45,7 @@ router = APIRouter()
 async def upload_statement(
     file: UploadFile,
     timezone: Annotated[str, Query(description="Client timezone")],
-    session_data: SessionDataDep,
+    session: SessionDep,
 ) -> None:
     """Handle file upload for bank statement"""
     try:
@@ -65,7 +64,7 @@ async def upload_statement(
             logger.exception("Upload failed")
             raise HTTPException(status_code=400, detail=str(e)) from e
 
-        session_data.statement = statement_transactions
+        await session.set_statement(statement_transactions)
 
     except HTTPException:
         raise
@@ -92,24 +91,21 @@ async def get_currencies(firefly_client: FireflyClientDep) -> List[Currency]:
 @router.get("/api/transactions")
 async def get_transactions(
     account_id: Annotated[int, Query(...)],
-    session_data: SessionDataDep,
+    session: SessionDep,
     firefly_client: FireflyClientDep,
 ) -> List[DisplayTransaction]:
     """Get merged transactions for an account"""
     logger.info("transactions start")
 
-    transactions_data = session_data.statement
+    statement = await session.get_statement()
 
-    if not transactions_data:
+    if not statement:
         logger.warning("No statement transactions found")
         raise HTTPException(status_code=204, detail="No statement transactions found")
 
-    # Calculate start date from statement transactions
-    start_date = max(tr.date.date() for tr in transactions_data) - timedelta(days=365)
-
     merged_transactions = merge_transactions(
-        await _get_transactions(account_id, start_date, session_data, firefly_client),
-        transactions_data,
+        await _get_transactions(account_id, session, firefly_client),
+        statement,
         await firefly_client.get_currencies(),
         account_id,
     )
@@ -121,7 +117,6 @@ async def get_transactions(
 async def store_transaction(
     account_id: Annotated[int, Query(...)],
     transaction: Annotated[DisplayTransaction, Body(...)],
-    session_data: SessionDataDep,
     firefly_client: FireflyClientDep,
 ) -> TransactionUpdateResponse:
     """Store a transaction"""
@@ -179,17 +174,7 @@ async def store_transaction(
 
     new_transaction = await firefly_client.store_transaction(new_transaction)
 
-    assert account_id in session_data.transactions
-    app_transactions = session_data.transactions[account_id][:]
-    if transaction.state is TransactionState.New:
-        app_transactions.append(new_transaction)
-    else:
-        idx = next(
-            idx for (idx, tr) in enumerate(app_transactions) if tr.id == transaction.id
-        )
-        app_transactions[idx] = new_transaction
-    app_transactions.sort(key=lambda tr: tr.date, reverse=True)
-    session_data.transactions[account_id] = app_transactions
+    firefly_client.clear_transactions_cache()
 
     response = TransactionUpdateResponse(
         transaction=new_transaction.as_display_transaction(account_id).model_copy(
@@ -204,13 +189,8 @@ async def store_transaction(
     if new_transaction.destination_id is None:
         new_acc_id = new_transaction.destination_id
     if new_acc_id is not None:
-        new_account = await firefly_client.get_account(new_acc_id)
-        session_data.accounts = (
-            [*session_data.accounts, new_account]
-            if session_data.accounts
-            else [new_account]
-        )
-        response.account = new_account
+        response.account = await firefly_client.get_account(new_acc_id)
+        firefly_client.clear_accounts_cache()
 
     return response
 
@@ -219,16 +199,11 @@ async def store_transaction(
 async def search_descriptions(
     account_id: Annotated[int, Query(...)],
     query: Annotated[str, Query(...)],
-    session_data: SessionDataDep,
+    session: SessionDep,
     firefly_client: FireflyClientDep,
 ):
     """Search for transaction descriptions"""
-    app_transactions = await _get_transactions(
-        account_id,
-        start_date=None,
-        session_data=session_data,
-        firefly_client=firefly_client,
-    )
+    app_transactions = await _get_transactions(account_id, session, firefly_client)
     candidates = list(set(tr.as_candidate(account_id) for tr in app_transactions))
     data = {idx: tr.description for idx, tr in enumerate(candidates)}
     result = [candidates[idx] for _, _, idx in extract(query, data)]
@@ -318,15 +293,13 @@ async def get_taxer_statement(
 
 async def _get_transactions(
     account_id: int,
-    start_date: date | None,
-    session_data: SessionData,
+    session: SessionDep,
     firefly_client: FireflyClient,
 ) -> List[Transaction]:
     """Get transactions from Firefly III for the given account and date range"""
-    if account_id not in session_data.transactions:
-        if start_date is None:
-            start_date = date.today() - timedelta(days=365)
-        session_data.transactions[account_id] = [
-            tr for tr in await firefly_client.get_transactions(account_id, start_date)
-        ]
-    return session_data.transactions[account_id]
+    statement = await session.get_statement()
+    if not statement:
+        start_date = date.today() - timedelta(days=365)
+    else:
+        start_date = min(tr.date.date() for tr in statement) - timedelta(days=365)
+    return await firefly_client.get_transactions(account_id, start_date)

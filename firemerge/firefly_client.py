@@ -41,6 +41,19 @@ class FireflyClient:
             )
         return cls(http_client, base_url, token)
 
+    def clear_transactions_cache(self) -> None:
+        self.get_transactions.cache.clear()  # type: ignore
+
+    def clear_accounts_cache(self) -> None:
+        self.get_accounts.cache.clear()  # type: ignore
+
+    def clear_cache(self) -> None:
+        self.get_accounts.cache.clear()  # type: ignore
+        self.get_account.cache.clear()  # type: ignore
+        self.get_categories.cache.clear()  # type: ignore
+        self.get_currencies.cache.clear()  # type: ignore
+        self.get_transactions.cache.clear()  # type: ignore
+
     async def _request(
         self,
         path: str,

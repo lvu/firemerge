@@ -1,20 +1,15 @@
-from pydantic import BaseModel, NonNegativeFloat
+from aiocache import BaseCache
 
-from firemerge.model import (
-    Account,
-    Category,
-    Currency,
-    Transaction,
-    StatementTransaction,
-)
+from firemerge.model import StatementTransaction
 
 
-class SessionData(BaseModel):
-    accounts: list[Account] | None = None
-    categories: list[Category] | None = None
-    currencies: list[Currency] | None = None
-    transactions: dict[int, list[Transaction]] = {}
-    statement: list[StatementTransaction] | None = None
+class Session:
+    def __init__(self, cache: BaseCache, session_id: str):
+        self.session_id = session_id
+        self.cache = cache
 
+    async def get_statement(self) -> list[StatementTransaction] | None:
+        return await self.cache.get(f"statement:{self.session_id}")
 
-session_data = SessionData()
+    async def set_statement(self, statement: list[StatementTransaction]) -> None:
+        await self.cache.set(f"statement:{self.session_id}", statement)
