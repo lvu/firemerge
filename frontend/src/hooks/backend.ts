@@ -10,12 +10,20 @@ import {
 import type { Account, Currency, Transaction, TransactionUpdateResponse } from '../types/backend';
 import type { Category } from '../types/backend';
 
-export const useUpdateTransaction = (accountId: number | undefined, transaction: Transaction) => {
+export const useUpdateTransaction = (
+  accountId: number | undefined,
+  transaction: Transaction,
+  onSuccess?: () => void,
+) => {
   const queryClient = useQueryClient();
   const { data: transactions } = useTransactions(accountId);
   const { data: accounts } = useAccounts();
   return useMutation({
-    mutationFn: () => updateTransaction(accountId!, transaction),
+    mutationFn: () =>
+      updateTransaction(accountId!, {
+        ...transaction,
+        state: transaction.state === 'enriched' ? 'new' : transaction.state,
+      }),
     onSuccess: (data: TransactionUpdateResponse) => {
       const { transaction: updated_transaction, account: updated_account } = data;
       queryClient.setQueryData(
@@ -28,6 +36,7 @@ export const useUpdateTransaction = (accountId: number | undefined, transaction:
           [accountId!]: updated_account,
         });
       }
+      onSuccess?.();
     },
   });
 };

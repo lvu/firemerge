@@ -1,11 +1,13 @@
 import { Alert, Box, FormControlLabel, Stack, Switch } from '@mui/material';
-import type { Account } from '../types/backend';
+import type { Account, Transaction } from '../types/backend';
 import { TransactionCard } from './TransactionCard';
 import { useState } from 'react';
 import { useTransactions } from '../hooks/backend';
+import { TransactionDialog } from './TransactionDialog';
 
 export const Transactions = ({ currentAccount }: { currentAccount: Account | null }) => {
   const [showMatched, setShowMatched] = useState(true);
+  const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const { data: transactions, error } = useTransactions(currentAccount?.id);
 
   if (error) {
@@ -15,8 +17,17 @@ export const Transactions = ({ currentAccount }: { currentAccount: Account | nul
     return <Alert severity="info">No transactions found</Alert>;
   }
 
+  const handleTransactionClick = (transaction: Transaction) => {
+    setCurrentTransaction(transaction);
+  };
+
   return (
     <Box>
+      <TransactionDialog
+        initialTransaction={currentTransaction}
+        currentAccount={currentAccount!}
+        onClose={() => setCurrentTransaction(null)}
+      />
       <FormControlLabel
         control={<Switch checked={showMatched} onChange={() => setShowMatched(!showMatched)} />}
         label="Show matched"
@@ -35,6 +46,7 @@ export const Transactions = ({ currentAccount }: { currentAccount: Account | nul
             initialTransaction={tr}
             currentAccount={currentAccount!}
             visible={showMatched ? true : tr.state !== 'matched'}
+            onEdit={handleTransactionClick}
           />
         ))}
       </Stack>

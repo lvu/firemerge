@@ -1,43 +1,65 @@
 import {
+  Badge,
   Button,
   Card,
+  CardActionArea,
   CardActions,
   CardContent,
   CardHeader,
   Chip,
+  Grid,
   Stack,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
+import { RequestQuoteOutlined } from '@mui/icons-material';
 import { alpha, useTheme } from '@mui/material/styles';
-import type { Account, Transaction } from '../types/backend';
-import { useState } from 'react';
-import { TransactionTypeInput } from './TransactionTypeInput';
-import { DescriptionInput } from './DescriptionInput';
-import { CategoryInput } from './CategoryInput';
-import { AccountInput } from './AccountInput';
-import { Candidates } from './Candidates';
+import { enrichTransaction, type Account, type Transaction } from '../types/backend';
 import { Loader } from './Loader';
-import { useCurrencies, useUpdateTransaction } from '../hooks/backend';
+import { useAccounts, useCategories, useCurrencies, useUpdateTransaction } from '../hooks/backend';
+import { TransactionTypeLabel } from './TransactionTypeLabel';
 
 const dateFormat = new Intl.DateTimeFormat(navigator.language, {
   hour12: false,
-  dateStyle: 'long',
+  dateStyle: 'full',
   timeStyle: 'short',
 });
+
+const DataField = ({ label, value }: { label: string; value?: string | React.ReactNode }) => {
+  return (
+    <>
+      <Grid size={{ xs: 4, sm: 2 }}>
+        <Typography variant="body2" color="text.secondary">
+          {label}
+        </Typography>
+      </Grid>
+      <Grid size={{ xs: 8, sm: 4 }}>
+        <Typography>{value ?? 'N/A'}</Typography>
+      </Grid>
+    </>
+  );
+};
 
 export const TransactionCard = ({
   initialTransaction,
   currentAccount,
   visible,
+  onEdit,
 }: {
   initialTransaction: Transaction;
   currentAccount: Account;
   visible: boolean;
+  onEdit: (transaction: Transaction) => void;
 }) => {
   const { data: currencies } = useCurrencies();
-  const [transaction, setTransaction] = useState<Transaction>(initialTransaction);
+  const { data: categories } = useCategories();
+  const { data: accounts } = useAccounts();
+
+  const transaction =
+    initialTransaction.state === 'new' && initialTransaction.candidates?.length === 1
+      ? enrichTransaction(initialTransaction, initialTransaction.candidates[0])
+      : initialTransaction;
+
   const {
     mutate: updateTransactionMutation,
     isPending,
@@ -48,66 +70,76 @@ export const TransactionCard = ({
 
   if (!visible || !transaction) return null;
 
-  const isEditable = transaction.state === 'new' || transaction.state === 'annotated';
+  const canSave = transaction.state === 'enriched' || transaction.state === 'annotated';
+  const canEdit = transaction.state === 'new' || transaction.state === 'enriched';
 
   const bgColor = {
+    enriched: theme.palette.success.main,
     new: theme.palette.info.main,
     matched: theme.palette.text.secondary,
     annotated: theme.palette.success.main,
     unmatched: theme.palette.warning.main,
   }[transaction.state];
   const currencySymbol = currencies?.[currentAccount.currency_id]?.symbol ?? '';
+
   return (
     <Card
-      component="fieldset"
-      disabled={!isEditable}
       sx={{
         backgroundColor: alpha(bgColor, 0.1),
         position: 'relative',
       }}
     >
       <Loader open={isPending} />
-      <CardHeader
-        title={
-          <Typography variant="h6" sx={{ flex: 1 }}>
-            {currencySymbol}
-            {transaction.amount}
-          </Typography>
-        }
-        subheader={
-          <Typography variant="subtitle1" sx={{ flex: 1 }}>
-            {dateFormat.format(Date.parse(transaction.date))}
-          </Typography>
-        }
-        action={<Chip label={transaction.state} sx={{ flex: 0, alignSelf: 'flex-end' }} />}
-      />
-      <CardContent>
-        <Stack direction="row" spacing={2} sx={{ display: 'flex' }}>
-          <Stack direction="column" spacing={2} sx={{ flex: 1 }}>
-            <Stack direction="row" justifyContent="space-between" spacing={2}>
-              <TransactionTypeInput transaction={transaction} setTransaction={setTransaction} />
+      <CardActionArea onClick={() => onEdit(transaction)} disabled={!canEdit}>
+        <CardHeader
+          title={
+            <Typography variant="h6" sx={{ flex: 1 }}>
+              {currencySymbol}
+              {transaction.amount}
+            </Typography>
+          }
+          subheader={
+            <Typography variant="subtitle1" sx={{ flex: 1 }}>
+              {dateFormat.format(Date.parse(transaction.date))}
+            </Typography>
+          }
+          action={
+            <Stack direction="row" spacing={2} alignItems="center">
+              {!!transaction.candidates?.length && (
+                <Badge badgeContent={transaction.candidates.length} color="primary">
+                  <RequestQuoteOutlined />
+                </Badge>
+              )}
+              <Chip label={transaction.state} sx={{ flex: 0, alignSelf: 'flex-end' }} />
             </Stack>
-            <DescriptionInput
-              accountId={currentAccount.id}
-              transaction={transaction}
-              setTransaction={setTransaction}
+          }
+        />
+        <CardContent>
+          <Grid container spacing={2}>
+            <DataField
+              label="Type"
+              value={
+                <Stack direction="row" spacing={0.5}>
+                  <TransactionTypeLabel type={transaction.type} />
+                  <Typography>{transaction.type}</Typography>
+                </Stack>
+              }
             />
-            <CategoryInput transaction={transaction} setTransaction={setTransaction} />
-            <AccountInput transaction={transaction} setTransaction={setTransaction} />
-            <TextField
-              label="Notes"
-              value={transaction.notes ?? ''}
-              multiline
-              rows={3}
-              onChange={(e) => setTransaction({ ...transaction, notes: e.target.value })}
+            <DataField label="Description" value={transaction.description} />
+            <DataField
+              label="Category"
+              value={
+                (transaction.category_id && categories?.[transaction.category_id]?.name) ?? 'N/A'
+              }
             />
-          </Stack>
-          <Stack direction="column" spacing={2} sx={{ flex: 1 }}>
-            <Candidates transaction={transaction} setTransaction={setTransaction} />
-          </Stack>
-        </Stack>
-      </CardContent>
-      {isEditable && (
+            <DataField
+              label="Account"
+              value={(transaction.account_id && accounts?.[transaction.account_id]?.name) ?? 'N/A'}
+            />
+          </Grid>
+        </CardContent>
+      </CardActionArea>
+      {canSave && (
         <CardActions>
           <Tooltip title={error?.message ?? ''}>
             <Button

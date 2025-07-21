@@ -9,7 +9,7 @@ import {
   Typography,
   Stack,
 } from '@mui/material';
-import type { Transaction, TransactionCandidate } from '../types/backend';
+import { enrichTransaction, type Transaction, type TransactionCandidate } from '../types/backend';
 import type { Category, Account } from '../types/backend';
 import { TransactionTypeLabel } from './TransactionTypeLabel';
 import { useAccounts, useCategories } from '../hooks/backend';
@@ -28,13 +28,7 @@ const CandidateRow = ({
   setTransaction: (transaction: Transaction) => void;
 }) => {
   const onRowDoubleClick = (candidate: TransactionCandidate) => {
-    setTransaction({
-      ...transaction,
-      type: candidate.type,
-      description: candidate.description,
-      account_id: candidate.account_id,
-      category_id: candidate.category_id,
-    });
+    setTransaction(enrichTransaction(transaction, candidate));
   };
 
   return (
@@ -79,7 +73,10 @@ export const Candidates = ({
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
 
-  if (transaction.state !== 'new' || !transaction.candidates) {
+  if (
+    (transaction.state !== 'new' && transaction.state !== 'enriched') ||
+    !transaction.candidates
+  ) {
     return null;
   }
   return (

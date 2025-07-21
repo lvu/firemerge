@@ -27,7 +27,7 @@ export type Currency = {
   symbol: string;
 };
 
-export type TransactionState = 'new' | 'matched' | 'annotated' | 'unmatched';
+export type TransactionState = 'enriched' | 'new' | 'matched' | 'annotated' | 'unmatched';
 export type TransactionType =
   | 'withdrawal'
   | 'transfer-in'
@@ -66,3 +66,17 @@ export type TransactionUpdateResponse = {
   transaction: Transaction;
   account?: Account;
 };
+
+export function enrichTransaction(
+  transaction: Transaction,
+  candidate: TransactionCandidate,
+): Transaction {
+  return {
+    ...transaction,
+    state: 'enriched' as TransactionState,
+    type: candidate.type,
+    description: candidate.description,
+    account_id: candidate.account_id,
+    category_id: candidate.category_id,
+  };
+}
