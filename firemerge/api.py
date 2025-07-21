@@ -14,10 +14,9 @@ from fastapi import (
     UploadFile,
     Body,
 )
-from thefuzz.process import extract
 
 from firemerge.firefly_client import FireflyClient
-from firemerge.merge import merge_transactions
+from firemerge.merge import best_candidates, deduplicate_candidates, merge_transactions
 from firemerge.model import (
     Account,
     Category,
@@ -25,6 +24,7 @@ from firemerge.model import (
     DisplayTransaction,
     DisplayTransactionType,
     Transaction,
+    TransactionCandidate,
     TransactionType,
     TransactionState,
     TransactionUpdateResponse,
@@ -95,8 +95,6 @@ async def get_transactions(
     firefly_client: FireflyClientDep,
 ) -> List[DisplayTransaction]:
     """Get merged transactions for an account"""
-    logger.info("transactions start")
-
     statement = await session.get_statement()
 
     if not statement:
@@ -201,13 +199,13 @@ async def search_descriptions(
     query: Annotated[str, Query(...)],
     session: SessionDep,
     firefly_client: FireflyClientDep,
-):
+) -> list[TransactionCandidate]:
     """Search for transaction descriptions"""
     app_transactions = await _get_transactions(account_id, session, firefly_client)
-    candidates = list(set(tr.as_candidate(account_id) for tr in app_transactions))
-    data = {idx: tr.description for idx, tr in enumerate(candidates)}
-    result = [candidates[idx] for _, _, idx in extract(query, data)]
-    return [tr.model_dump(mode="json") for tr in result]
+    candidates = deduplicate_candidates(
+        (tr.as_candidate(account_id) for tr in app_transactions), ignore_notes=True
+    )
+    return best_candidates(candidates, query, lambda tr: tr.description)
 
 
 @router.get("/api/taxer_statement")

@@ -15,6 +15,7 @@ class State(TypedDict):
     firefly_client: FireflyClient
     cache: BaseCache
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[State]:
     async with AsyncClient() as client:
@@ -45,6 +46,7 @@ def session(
     cache: Annotated[BaseCache, Depends(state_dependency("cache"))],
 ) -> Session:
     return Session(cache, session_id)
+
 
 HttpClientDep = Annotated[AsyncClient, Depends(state_dependency("http_client"))]
 FireflyClientDep = Annotated[FireflyClient, Depends(state_dependency("firefly_client"))]

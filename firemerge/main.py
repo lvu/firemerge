@@ -17,7 +17,9 @@ FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend")
 
 app = FastAPI(title="FireMerge API", version="1.0.0", lifespan=lifespan)
 app.include_router(router)
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", uuid4().hex))
+app.add_middleware(
+    SessionMiddleware, secret_key=os.getenv("SESSION_SECRET", uuid4().hex)
+)
 
 
 def serve_web():

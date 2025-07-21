@@ -37,9 +37,11 @@ export type TransactionType =
 
 export type TransactionCandidate = {
   description: string;
+  date: string;
   type: TransactionType;
   category_id?: number;
   account_id?: number;
+  score?: number;
   notes?: string;
 };
 

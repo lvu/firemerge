@@ -70,9 +70,11 @@ class Currency(BaseModel):
 class TransactionCandidate(BaseModel):
     model_config = ConfigDict(frozen=True)
     description: str
+    date: datetime
     type: DisplayTransactionType
     category_id: Optional[int] = None
     account_id: Optional[int] = None
+    score: Optional[float] = None
     notes: Optional[str] = None
 
 
@@ -134,6 +136,7 @@ class Transaction(BaseModel):
 
         return TransactionCandidate(
             description=self.description,
+            date=self.date,
             type=trans_type,
             category_id=self.category_id,
             account_id=account_id,

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Optional, TypeVar
+from typing import Callable, Iterable, Optional, Tuple, TypeVar
 from hashlib import md5
 
 from thefuzz.process import extractBests
@@ -16,7 +16,7 @@ from .model import (
 
 
 MAX_CANDIDATES = 10
-SCORE_CUTOFF = 90
+SCORE_CUTOFF = 95
 
 TMatch = TypeVar("TMatch", bound=Transaction | TransactionCandidate)
 
@@ -25,12 +25,57 @@ def meta_to_notes(meta: dict[str, str]) -> Optional[str]:
     return "\n".join(f"{k}: {v}" for k, v in meta.items()) if meta else None
 
 
-def best_matches(candidates: list[TMatch], st: StatementTransaction) -> list[TMatch]:
-    data = {idx: tr.notes for idx, tr in enumerate(candidates)}
+def best_matches(
+    candidates: list[TMatch],
+    query: Optional[str],
+    limit: int,
+    extractor: Callable[[TMatch], Optional[str]],
+) -> list[Tuple[TMatch, float]]:
+    if query is None:
+        return []
+    data = {
+        idx: value
+        for idx, tr in enumerate(candidates)
+        if (value := extractor(tr)) is not None
+    }
     extracted = extractBests(
-        meta_to_notes(st.meta), data, limit=MAX_CANDIDATES, score_cutoff=SCORE_CUTOFF
+        query, data, limit=MAX_CANDIDATES, score_cutoff=SCORE_CUTOFF
     )
-    return [candidates[idx] for _, _, idx in extracted]
+    return [(candidates[idx], score) for _, score, idx in extracted]
+
+
+def deduplicate_candidates(
+    candidates: Iterable[TransactionCandidate], ignore_notes: bool = False
+) -> list[TransactionCandidate]:
+    ignore_fields = ["date", "score"] + (["notes"] if ignore_notes else [])
+    result: dict[str, TransactionCandidate] = {}
+    for tr in candidates:
+        key = tr.model_copy(update={f: None for f in ignore_fields}).model_dump_json()
+        if key not in result:
+            result[key] = tr
+        elif (old_tr := result[key]).date < tr.date:
+            result[key] = tr.model_copy(
+                update={"score": max(tr.score or 0, old_tr.score or 0)}
+            )
+    return list(result.values())
+
+
+def best_candidates(
+    candidates: list[TransactionCandidate],
+    query: Optional[str],
+    extractor: Callable[[TransactionCandidate], Optional[str]],
+) -> list[TransactionCandidate]:
+    result = deduplicate_candidates(
+        (
+            candidate.model_copy(update={"score": score})
+            for candidate, score in best_matches(
+                candidates, query, MAX_CANDIDATES, extractor
+            )
+        ),
+        ignore_notes=True,
+    )
+    result.sort(key=lambda tr: (tr.score, tr.date), reverse=True)
+    return result
 
 
 def match_single_transaction(
@@ -42,9 +87,11 @@ def match_single_transaction(
         if abs(tr.amount) == abs(st.amount)
         and abs(tr.date - st.date) < timedelta(days=1)
     ]
-    if res := best_matches(candidates, st):
-        return res[0]
-    return candidates[0] if candidates else None
+    if not candidates:
+        return None
+    if res := best_matches(candidates, meta_to_notes(st.meta), 1, lambda tr: tr.notes):
+        return res[0][0]
+    return candidates[0]
 
 
 def merge_transactions(
@@ -53,7 +100,9 @@ def merge_transactions(
     currencies: list[Currency],
     current_account_id: int,
 ) -> list[DisplayTransaction]:
-    candidates = list(set(tr.as_candidate(current_account_id) for tr in transactions))
+    candidates = deduplicate_candidates(
+        tr.as_candidate(current_account_id) for tr in transactions
+    )
     currency_map = {curr.code: curr for curr in currencies}
     transactions.sort(key=lambda tr: tr.date, reverse=True)
     transactions_to_match = transactions[:]
@@ -91,7 +140,9 @@ def merge_transactions(
                         if st.foreign_currency_code
                         else None,
                         "notes": meta_to_notes(st.meta),
-                        "candidates": best_matches(candidates, st),
+                        "candidates": best_candidates(
+                            candidates, meta_to_notes(st.meta), lambda tr: tr.notes
+                        ),
                     }
                 )
             )

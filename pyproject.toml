@@ -7,6 +7,7 @@ name = "firemerge"
 description = "Firefly merge/import GUI"
 version = "0.1.0"
 readme = "README.md"
+requires-python = ">= 3.11"
 dependencies = [
     "aiocache ~= 0.12.0",
     "fastapi ~= 0.104.0",
@@ -47,7 +48,7 @@ follow_untyped_imports = true
 
 [tool.taskipy.tasks]
 mypy = "mypy firemerge"
-ruff = "ruff format firemerge"
+ruff = "ruff format firemerge && ruff check firemerge"
 fe-lint = "cd frontend && npm run lint"
 fe-check = "cd frontend && npm run check"
 checks = "task ruff && task mypy && task fe-lint && task fe-check"

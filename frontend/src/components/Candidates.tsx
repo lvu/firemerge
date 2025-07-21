@@ -1,4 +1,14 @@
-import { Table, TableCell, TableRow, TableHead, TableBody, Tooltip, Box } from '@mui/material';
+import {
+  Table,
+  TableCell,
+  TableRow,
+  TableHead,
+  TableBody,
+  Tooltip,
+  Box,
+  Typography,
+  Stack,
+} from '@mui/material';
 import type { Transaction, TransactionCandidate } from '../types/backend';
 import type { Category, Account } from '../types/backend';
 import { TransactionTypeLabel } from './TransactionTypeLabel';
@@ -30,9 +40,13 @@ const CandidateRow = ({
   return (
     <Tooltip
       title={
-        <Box component="span" sx={{ whiteSpace: 'pre-wrap' }}>
-          {candidate.notes ?? ''}
-        </Box>
+        <Stack>
+          <Typography variant="body1">{candidate.score}</Typography>
+          <Typography variant="caption">{candidate.date}</Typography>
+          <Box component="span" sx={{ whiteSpace: 'pre-wrap' }}>
+            {candidate.notes ?? ''}
+          </Box>
+        </Stack>
       }
     >
       <TableRow
