@@ -1,4 +1,4 @@
-import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getAccounts,
   getCategories,
@@ -85,7 +85,6 @@ export const useCurrencies = () => {
     staleTime: Infinity,
   });
 };
-
 
 export const useRefresh = () => {
   const queryClient = useQueryClient();

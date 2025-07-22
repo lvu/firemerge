@@ -7,15 +7,24 @@ from typing import AsyncIterable, Optional, Self
 from uuid import uuid4
 
 from aiocache import cached
+from pydantic import ValidationError
 from httpx import AsyncClient, HTTPStatusError
 
-from firemerge.model import Account, Category, Currency, Transaction, TransactionState
+from firemerge.model import (
+    Account,
+    Category,
+    Currency,
+    Transaction,
+    TransactionState,
+)
 from firemerge.util import async_collect
 
 logger = logging.getLogger("uvicorn.error")
 
 TIMEOUT = 300
 CACHE_TTL = 600
+PAGE_SIZE = 1000
+MAX_ACCOUNTS = 10000
 
 
 class FireflyClient:
@@ -24,12 +33,12 @@ class FireflyClient:
         self.token = token
         self._client = http_client
         self.get_accounts = cached(ttl=CACHE_TTL)(self.get_accounts)  # type: ignore
-        self.get_account = cached(ttl=CACHE_TTL)(self.get_account)  # type: ignore
         self.get_categories = cached(ttl=CACHE_TTL)(self.get_categories)  # type: ignore
         self.get_currencies = cached(ttl=CACHE_TTL)(self.get_currencies)  # type: ignore
         self.get_transactions = cached(ttl=CACHE_TTL)(  # type: ignore
             self.get_transactions
         )
+        self.account_type_map: dict[str, Optional[str]] = {}
 
     @classmethod
     def from_env(cls, http_client: AsyncClient) -> Self:
@@ -49,7 +58,6 @@ class FireflyClient:
 
     async def clear_cache(self) -> None:
         await self.get_accounts.cache.clear()  # type: ignore
-        await self.get_account.cache.clear()  # type: ignore
         await self.get_categories.cache.clear()  # type: ignore
         await self.get_currencies.cache.clear()  # type: ignore
         await self.get_transactions.cache.clear()  # type: ignore
@@ -138,8 +146,28 @@ class FireflyClient:
 
     @async_collect
     async def get_accounts(self) -> AsyncIterable[Account]:
-        async for row in self._paging_get("v1/accounts", {"limit": 1000}):
-            yield Account.model_validate({**row["attributes"], "id": row["id"]})
+        accounts = await self._request(
+            "v1/autocomplete/accounts", {"limit": MAX_ACCOUNTS, "query": ""}
+        )
+        for account_info in accounts:
+            if account_info["type"] not in self.account_type_map:
+                try:
+                    account = await self.get_account(account_info["id"])
+                    logger.info(
+                        f"Account type for {account_info['type']} is {account.type.value}; {account}"
+                    )
+                    self.account_type_map[account_info["type"]] = account.type.value
+                except ValidationError as e:
+                    # This is a workaround for the fact that some accounts are not valid
+                    logger.warning(
+                        f"Error getting account type for {account_info['type']}: {e}"
+                    )
+                    self.account_type_map[account_info["type"]] = None
+            if self.account_type_map[account_info["type"]] is None:
+                continue
+            yield Account.model_validate(
+                {**account_info, "type": self.account_type_map[account_info["type"]]}
+            )
 
     async def get_account(self, account_id: int) -> Account:
         resp = await self._request(f"v1/accounts/{account_id}")

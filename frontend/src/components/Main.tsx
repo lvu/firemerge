@@ -3,7 +3,7 @@ import { useState } from 'react';
 import type { Account } from '../types/backend';
 import StatementFileUpload from './FileUpload';
 import { Transactions } from './Transactions';
-import { Container, Typography, AppBar, Toolbar, Alert, Stack, Box } from '@mui/material';
+import { Container, Typography, AppBar, Toolbar, Alert, Stack } from '@mui/material';
 import { useUploadTransactions } from '../hooks/backend';
 import { RefreshButton } from './RefreshButton';
 
@@ -29,7 +29,10 @@ export const Main = () => {
         <Stack direction="column" spacing={2}>
           <Stack direction="row" spacing={2} sx={{ display: 'flex', alignItems: 'center' }}>
             <CurrentAccount currentAccount={currentAccount} setCurrentAccount={setCurrentAccount} />
-            <StatementFileUpload uploadTransactions={uploadTransactions} isUploading={isUploading} />
+            <StatementFileUpload
+              uploadTransactions={uploadTransactions}
+              isUploading={isUploading}
+            />
           </Stack>
           {uploadError && <Alert severity="error">{uploadError.message}</Alert>}
           <Transactions currentAccount={currentAccount} />

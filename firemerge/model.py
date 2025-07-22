@@ -51,7 +51,7 @@ class DisplayTransactionType(Enum):
 class Account(BaseModel):
     id: int
     type: AccountType
-    currency_id: int
+    currency_id: Optional[int]
     name: str
 
 

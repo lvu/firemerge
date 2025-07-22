@@ -119,6 +119,7 @@ async def store_transaction(
 ) -> TransactionUpdateResponse:
     """Store a transaction"""
     account = await firefly_client.get_account(account_id)
+    assert account.currency_id is not None
 
     # Determine transaction type and IDs
     source_name: Optional[str]
