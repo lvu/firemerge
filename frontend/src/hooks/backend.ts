@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getAccounts,
   getCategories,
@@ -6,6 +6,7 @@ import {
   getTransactions,
   updateTransaction,
   uploadTransactions,
+  clearCache,
 } from '../services/backend';
 import type { Account, Currency, Transaction, TransactionUpdateResponse } from '../types/backend';
 import type { Category } from '../types/backend';
@@ -82,5 +83,19 @@ export const useCurrencies = () => {
     queryKey: ['global', 'currencies'],
     queryFn: getCurrencies,
     staleTime: Infinity,
+  });
+};
+
+
+export const useRefresh = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: clearCache,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['global', 'accounts'] });
+      queryClient.invalidateQueries({ queryKey: ['global', 'categories'] });
+      queryClient.invalidateQueries({ queryKey: ['global', 'currencies'] });
+    },
   });
 };

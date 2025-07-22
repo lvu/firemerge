@@ -208,6 +208,11 @@ async def search_descriptions(
     return best_candidates(candidates, query, lambda tr: tr.description)
 
 
+@router.post("/api/clear_cache")
+async def clear_cache(firefly_client: FireflyClientDep) -> None:
+    await firefly_client.clear_cache()
+
+
 @router.get("/api/taxer_statement")
 async def get_taxer_statement(
     account_id: Annotated[int, Query(...)],

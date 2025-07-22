@@ -113,3 +113,9 @@ export async function updateTransaction(
     },
   ))!;
 }
+
+export async function clearCache(): Promise<void> {
+  await apiFetch<void>('/api/clear_cache', {}, {
+    method: 'POST',
+  });
+}

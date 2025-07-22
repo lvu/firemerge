@@ -47,12 +47,12 @@ class FireflyClient:
     def clear_accounts_cache(self) -> None:
         self.get_accounts.cache.clear()  # type: ignore
 
-    def clear_cache(self) -> None:
-        self.get_accounts.cache.clear()  # type: ignore
-        self.get_account.cache.clear()  # type: ignore
-        self.get_categories.cache.clear()  # type: ignore
-        self.get_currencies.cache.clear()  # type: ignore
-        self.get_transactions.cache.clear()  # type: ignore
+    async def clear_cache(self) -> None:
+        await self.get_accounts.cache.clear()  # type: ignore
+        await self.get_account.cache.clear()  # type: ignore
+        await self.get_categories.cache.clear()  # type: ignore
+        await self.get_currencies.cache.clear()  # type: ignore
+        await self.get_transactions.cache.clear()  # type: ignore
 
     async def _request(
         self,

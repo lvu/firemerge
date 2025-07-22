@@ -20,13 +20,11 @@ export default function StatementFileUpload({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <Stack spacing={2}>
       <Tooltip title="Upload bank statement">
         <IconButton component="label" disabled={isUploading} color="inherit">
           {isUploading ? <CircularProgress size={20} /> : <UploadOutlined />}
           <input type="file" hidden onChange={handleFileChange} ref={fileInputRef} />
         </IconButton>
       </Tooltip>
-    </Stack>
   );
 }

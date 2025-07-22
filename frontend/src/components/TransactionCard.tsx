@@ -34,7 +34,7 @@ const DataField = ({ label, value }: { label: string; value?: string | React.Rea
         </Typography>
       </Grid>
       <Grid size={{ xs: 8, sm: 4 }}>
-        <Typography>{value ?? 'N/A'}</Typography>
+        <Typography component="div">{value ?? 'N/A'}</Typography>
       </Grid>
     </>
   );
