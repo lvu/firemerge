@@ -78,6 +78,11 @@ async def get_accounts(firefly_client: FireflyClientDep) -> List[Account]:
     return await firefly_client.get_accounts()
 
 
+@router.get("/api/accounts/{account_id}")
+async def get_account(account_id: int, firefly_client: FireflyClientDep) -> Account:
+    return await firefly_client.get_account(account_id)
+
+
 @router.get("/api/categories")
 async def get_categories(firefly_client: FireflyClientDep) -> List[Category]:
     return await firefly_client.get_categories()

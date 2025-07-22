@@ -12,7 +12,8 @@ export type Account = {
   id: number;
   name: string;
   type: AccountType;
-  currency_id: number;
+  currency_id?: number;
+  current_balance?: number;
 };
 
 export type Category = {

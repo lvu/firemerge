@@ -53,6 +53,7 @@ class Account(BaseModel):
     type: AccountType
     currency_id: Optional[int]
     name: str
+    current_balance: Optional[Money] = None
 
 
 class Category(BaseModel):

@@ -35,6 +35,10 @@ async function apiFetch<T>(
   return res.json();
 }
 
+export async function getAccount(accountId: number): Promise<Account | null> {
+  return (await apiFetch<Account>(`/api/accounts/${accountId}`))!;
+}
+
 export async function getAccounts(): Promise<Record<number, Account>> {
   return (await apiFetch<Account[]>('/api/accounts'))!.reduce(
     (acc, account) => {

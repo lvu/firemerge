@@ -80,7 +80,9 @@ export const TransactionCard = ({
     annotated: theme.palette.success.main,
     unmatched: theme.palette.warning.main,
   }[transaction.state];
-  const currencySymbol = currencies?.[currentAccount.currency_id]?.symbol ?? '';
+  const currencySymbol = currentAccount.currency_id
+    ? (currencies?.[currentAccount.currency_id]?.symbol ?? '')
+    : '';
 
   return (
     <Card
