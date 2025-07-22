@@ -1,9 +1,8 @@
 import type { Account } from '../types/backend';
 import { Alert, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/material';
-import { useAccounts, useCurrencies } from '../hooks/backend';
+import { useAccounts, useAccountDetails, useCurrencies } from '../hooks/backend';
 import { ExpandCircleDown } from '@mui/icons-material';
 import { useRef, useState } from 'react';
-import { getAccount } from '../services/backend';
 
 export const CurrentAccount = ({
   currentAccount,
@@ -16,6 +15,8 @@ export const CurrentAccount = ({
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const { data: currencies } = useCurrencies();
   const { data: accounts, error } = useAccounts();
+  const { data: currentAccountDetails } = useAccountDetails(currentAccount?.id);
+
   const assetAccounts = Object.values(accounts ?? {})
     .filter((a) => a.type === 'asset')
     .sort((a, b) => a.id - b.id);
@@ -24,22 +25,22 @@ export const CurrentAccount = ({
     return <Alert severity="error">Error: {error.message}</Alert>;
   }
 
-  const accountCurrencySymbol = currentAccount?.currency_id
-    ? currencies?.[currentAccount.currency_id]?.symbol
+  const accountCurrencySymbol = currentAccountDetails?.currency_id
+    ? currencies?.[currentAccountDetails.currency_id]?.symbol
     : '';
 
   const handleAccountClick = async (account: Account) => {
-    setCurrentAccount(await getAccount(account.id));
+    setCurrentAccount(account);
     setIsAccountMenuOpen(false);
   };
 
   return (
-    <Stack direction="row" alignItems="center" spacing={3}>
+    <Stack direction="row" alignItems="center" spacing={2}>
       {currentAccount ? (
         <>
           <Typography ref={accountMenuRef}>{currentAccount.name}</Typography>
           <Typography>
-            {accountCurrencySymbol} {currentAccount.current_balance}
+            {accountCurrencySymbol}&nbsp;{currentAccountDetails?.current_balance}
           </Typography>
         </>
       ) : (

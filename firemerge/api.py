@@ -28,6 +28,7 @@ from firemerge.model import (
     TransactionType,
     TransactionState,
     TransactionUpdateResponse,
+    StatementInfo,
 )
 from firemerge.statement import StatementReader
 from firemerge.deps import (
@@ -71,6 +72,18 @@ async def upload_statement(
     except Exception as e:
         logger.exception("Upload failed")
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@router.get("/api/statement_info")
+async def get_statement_info(session: SessionDep) -> Optional[StatementInfo]:
+    statement = await session.get_statement()
+    if statement is None:
+        return None
+    return StatementInfo(
+        num_transactions=len(statement),
+        start_date=min(tr.date.date() for tr in statement),
+        end_date=max(tr.date.date() for tr in statement),
+    )
 
 
 @router.get("/api/accounts")

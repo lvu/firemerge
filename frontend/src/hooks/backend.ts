@@ -7,9 +7,17 @@ import {
   updateTransaction,
   uploadTransactions,
   clearCache,
+  getStatementInfo,
+  getAccount,
 } from '../services/backend';
-import type { Account, Currency, Transaction, TransactionUpdateResponse } from '../types/backend';
-import type { Category } from '../types/backend';
+import type {
+  Account,
+  Category,
+  Currency,
+  StatementInfo,
+  Transaction,
+  TransactionUpdateResponse,
+} from '../types/backend';
 
 export const useUpdateTransaction = (
   accountId: number | undefined,
@@ -37,6 +45,7 @@ export const useUpdateTransaction = (
           [accountId!]: updated_account,
         });
       }
+      queryClient.invalidateQueries({ queryKey: ['account_details', accountId] });
       onSuccess?.();
     },
   });
@@ -49,6 +58,7 @@ export const useUploadTransactions = () => {
       uploadTransactions(f, Intl.DateTimeFormat().resolvedOptions().timeZone),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['global', 'statement_info'] });
     },
   });
 };
@@ -91,10 +101,24 @@ export const useRefresh = () => {
   return useMutation({
     mutationFn: clearCache,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['global', 'accounts'] });
-      queryClient.invalidateQueries({ queryKey: ['global', 'categories'] });
-      queryClient.invalidateQueries({ queryKey: ['global', 'currencies'] });
+      queryClient.invalidateQueries({ queryKey: ['global'] });
     },
+  });
+};
+
+export const useStatementInfo = () => {
+  return useQuery<StatementInfo | null>({
+    queryKey: ['global', 'statement_info'],
+    queryFn: getStatementInfo,
+    staleTime: Infinity,
+  });
+};
+
+export const useAccountDetails = (accountId?: number) => {
+  return useQuery<Account | null>({
+    queryKey: ['account_details', accountId],
+    queryFn: () => getAccount(accountId!),
+    enabled: !!accountId,
+    staleTime: Infinity,
   });
 };

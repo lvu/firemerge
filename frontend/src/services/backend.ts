@@ -5,6 +5,7 @@ import type {
   Transaction,
   TransactionCandidate,
   TransactionUpdateResponse,
+  StatementInfo,
 } from '../types/backend';
 
 async function apiFetch<T>(
@@ -116,6 +117,10 @@ export async function updateTransaction(
       },
     },
   ))!;
+}
+
+export async function getStatementInfo(): Promise<StatementInfo | null> {
+  return (await apiFetch<StatementInfo | null>(`/api/statement_info`))!;
 }
 
 export async function clearCache(): Promise<void> {

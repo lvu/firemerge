@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 from typing import Optional
@@ -175,3 +175,9 @@ class TransactionUpdateResponse(BaseModel):
 
     transaction: DisplayTransaction
     account: Optional[Account]
+
+
+class StatementInfo(BaseModel):
+    num_transactions: int
+    start_date: date
+    end_date: date
