@@ -36,10 +36,10 @@ from firemerge.deps import FireflyClientDep
 
 logger = logging.getLogger("uvicorn.error")
 
-router = APIRouter()
+api_router = APIRouter(prefix="/api")
 
 
-@router.post("/api/parse_statement")
+@api_router.post("/parse_statement")
 async def parse_statement(
     file: UploadFile,
     account_id: Annotated[int, Query(...)],
@@ -71,27 +71,27 @@ async def parse_statement(
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
-@router.get("/api/accounts")
+@api_router.get("/accounts")
 async def get_accounts(firefly_client: FireflyClientDep) -> List[Account]:
     return await firefly_client.get_accounts()
 
 
-@router.get("/api/accounts/{account_id}")
+@api_router.get("/accounts/{account_id}")
 async def get_account(account_id: int, firefly_client: FireflyClientDep) -> Account:
     return await firefly_client.get_account(account_id)
 
 
-@router.get("/api/categories")
+@api_router.get("/categories")
 async def get_categories(firefly_client: FireflyClientDep) -> List[Category]:
     return await firefly_client.get_categories()
 
 
-@router.get("/api/currencies")
+@api_router.get("/currencies")
 async def get_currencies(firefly_client: FireflyClientDep) -> List[Currency]:
     return await firefly_client.get_currencies()
 
 
-@router.post("/api/transactions")
+@api_router.post("/transactions")
 async def get_transactions(
     account_id: Annotated[int, Query(...)],
     statement: Annotated[list[StatementTransaction], Body(...)],
@@ -109,7 +109,7 @@ async def get_transactions(
     )
 
 
-@router.post("/api/transaction")
+@api_router.post("/transaction")
 async def store_transaction(
     account_id: Annotated[int, Query(...)],
     transaction: Annotated[DisplayTransaction, Body(...)],
@@ -192,7 +192,7 @@ async def store_transaction(
     return response
 
 
-@router.get("/api/descriptions")
+@api_router.get("/descriptions")
 async def search_descriptions(
     account_id: Annotated[int, Query(...)],
     query: Annotated[str, Query(...)],
@@ -206,12 +206,12 @@ async def search_descriptions(
     return best_candidates(candidates, query, lambda tr: tr.description)
 
 
-@router.post("/api/clear_cache")
+@api_router.post("/clear_cache")
 async def clear_cache(firefly_client: FireflyClientDep) -> None:
     await firefly_client.clear_cache()
 
 
-@router.get("/api/taxer_statement")
+@api_router.get("/taxer_statement")
 async def get_taxer_statement(
     account_id: Annotated[int, Query(...)],
     start_date: Annotated[

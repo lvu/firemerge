@@ -3,18 +3,21 @@ import os
 import urllib.parse
 
 from fastapi import FastAPI
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
-from firemerge.api import router
+from firemerge.api import api_router
 from firemerge.deps import lifespan
 
 
 PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
-FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend")
+FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend", "dist")
 
 
 app = FastAPI(title="FireMerge API", version="1.0.0", lifespan=lifespan)
-app.include_router(router)
+app.include_router(api_router)
+app.mount("/", StaticFiles(directory=FRONTEND_ROOT, html=True), name="frontend")
 
 
 def serve_web():

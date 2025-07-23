@@ -1,13 +1,14 @@
+import csv
 from datetime import datetime
 from decimal import Decimal
 from io import BytesIO
-from typing import Iterable
+from typing import Iterable, NamedTuple, Optional
 from zoneinfo import ZoneInfo
 
 import pdfplumber
 from openpyxl import load_workbook
 
-from .model import Account, Money, StatementTransaction
+from firemerge.model import Account, Money, StatementTransaction
 
 
 class StatementReader:
@@ -82,6 +83,59 @@ class AvalStatementReader(StatementReader):
                 raise ValueError("Statement not found")
 
 
+class _ABRecord(NamedTuple):
+    account: str
+    currency: str
+    date: datetime
+    doc_number: str
+    debit: Optional[Money]
+    credit: Optional[Money]
+    purpose: str
+
+
+class AvalBusinessStatementReader(StatementReader):
+    HEADER = [
+        "ЄДРПОУ",
+        "МФО",
+        "Рахунок",
+        "Валюта",
+        "Дата операції",
+        "Код операції",
+        "МФО банка",
+        "Назва банка",
+        "Рахунок кореспондента",
+        "ЄДРПОУ кореспондента",
+        "Кореспондент",
+        "Документ",
+        "Дата документа",
+        "Дебет",
+        "Кредит",
+        "Призначення платежу",
+        "Гривневе покриття",
+    ]
+
+    def _read(self) -> Iterable[StatementTransaction]:
+        reader = csv.reader(self.data.read().decode("cp1251").splitlines(), delimiter=";")
+        header = next(reader)
+        if header != self.HEADER:
+            print(header)
+            raise ValueError("Header mismatch")
+        records = [
+            _ABRecord(
+                account=row[2],
+                currency=row[3],
+                date=datetime.strptime(row[4], "%d.%m.%Y %H:%M"),
+                doc_number=row[11],
+                debit=Money(row[13]) if row[13] else None,
+                credit=Money(row[14]) if row[14] else None,
+                purpose=row[15],
+            )
+            for row in reader
+            if row[0]
+        ]
+        return records
+
+
 class PrivatStatementReader(StatementReader):
     HEADER = [
         "Дата",
@@ -128,3 +182,11 @@ class PrivatStatementReader(StatementReader):
                 else None,
                 meta={"Category": str(values[1]), "Description": str(values[3])},
             )
+
+
+if __name__ == "__main__":
+    import sys
+    with open(sys.argv[1], "rb") as f:
+        reader = AvalBusinessStatementReader(f, ZoneInfo("Europe/Kiev"))
+        for record in reader._read():
+            print(record)
