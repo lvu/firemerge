@@ -1,43 +1,39 @@
-# Use Python 3.11 slim image as base
-FROM python:3.11-slim
+FROM node:22-slim AS frontend-builder
 
-# Set working directory
-WORKDIR /app
+WORKDIR /app/frontend
 
-# Install system dependencies required for PDF processing and health checks
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+COPY frontend/package*.json ./
 
-# Copy requirements first for better caching
-COPY pyproject.toml ./
+RUN npm install
 
-# Copy application code
-COPY firemerge/ ./firemerge/
-COPY frontend/ ./frontend/
+COPY frontend/ ./
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
+RUN npm run build
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash firemerge && \
-    chown -R firemerge:firemerge /app
 
-# Switch to non-root user
-USER firemerge
+FROM ghcr.io/astral-sh/uv:bookworm-slim
+
+WORKDIR /app/backend
+
+COPY backend/.python-version ./
+RUN uv python install
+
+COPY backend/pyproject.toml ./
+COPY backend/uv.lock ./
+COPY backend/src/firemerge/__init__.py ./src/firemerge/__init__.py
+
+RUN uv sync --locked
+
+COPY backend/ ./
+
+COPY --from=frontend-builder /app/frontend/dist/ /app/frontend/dist/
 
 # Expose port
 EXPOSE 8080
-
-# Set environment variables
-ENV PYTHONPATH=/app
-ENV PYTHONUNBUFFERED=1
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/ || exit 1
 
 # Default command
-CMD ["firemerge"]
+CMD ["uv", "run", "firemerge"]

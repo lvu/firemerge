@@ -11,7 +11,7 @@ from firemerge.api import api_router
 from firemerge.deps import lifespan
 
 
-PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 FRONTEND_ROOT = os.path.join(PROJECT_ROOT, "frontend", "dist")
 
 

@@ -3,47 +3,30 @@
 .gitignore
 
 # Python
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-.Python
-env
-pip-log.txt
-pip-delete-this-directory.txt
-.tox
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git
-.mypy_cache
-.pytest_cache
-.hypothesis
+**/__pycache__/
+**/*.egg-info/
 
 # Virtual environments
-venv/
-env/
-ENV/
+**/venv/
+**/.venv/
 
 # IDE
-.vscode/
-.idea/
-*.swp
-*.swo
+**/.vscode/
+**/.idea/
+**/*.swp
+**/*.swo
 
 # OS
-.DS_Store
-Thumbs.db
+**/*.DS_Store
+**/*.Thumbs.db
 
 # Development files
-*.egg-info/
-build/
-dist/
+**/*.egg-info/
+**/build/
+**/dist/
 
 # Test files
-tests/
-test_*
+**/tests/
+**/test_*
+
+**/node_modules/
