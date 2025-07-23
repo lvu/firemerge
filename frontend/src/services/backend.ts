@@ -92,13 +92,14 @@ export async function getTransactions(
 
 export async function parseStatement(
   file: File,
+  accountId: number,
   timezone: string,
 ): Promise<StatementTransaction[]> {
   const formData = new FormData();
   formData.append('file', file);
   return (await apiFetch<StatementTransaction[]>(
     `/api/parse_statement`,
-    { timezone },
+    { timezone, account_id: accountId.toString() },
     {
       method: 'POST',
       body: formData,

@@ -6,9 +6,11 @@ import type { StatementTransaction } from '../types/backend';
 
 export default function Statement({
   statement,
+  accountId,
   setStatement,
 }: {
   statement: StatementTransaction[] | null;
+  accountId: number;
   setStatement: (statement: StatementTransaction[]) => void;
 }) {
   const {
@@ -19,7 +21,7 @@ export default function Statement({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
-    parseStatement(e.target.files[0]);
+    parseStatement({ file: e.target.files[0], accountId });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }

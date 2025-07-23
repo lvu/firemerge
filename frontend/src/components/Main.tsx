@@ -23,10 +23,24 @@ export const Main = () => {
       <Container maxWidth="lg" sx={{ mt: 2 }}>
         <Stack direction="column" spacing={2}>
           <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
-            <CurrentAccount currentAccount={currentAccount} setCurrentAccount={setCurrentAccount} />
-            <StatementFileUpload statement={statement} setStatement={setStatement} />
+            <CurrentAccount
+              currentAccount={currentAccount}
+              setCurrentAccount={(acct) => {
+                setCurrentAccount(acct);
+                setStatement(null);
+              }}
+            />
+            {currentAccount && (
+              <StatementFileUpload
+                statement={statement}
+                accountId={currentAccount.id!}
+                setStatement={setStatement}
+              />
+            )}
           </Stack>
-          <Transactions currentAccount={currentAccount} statement={statement} />
+          {currentAccount && statement !== null && (
+            <Transactions currentAccount={currentAccount} statement={statement} />
+          )}
         </Stack>
       </Container>
     </>

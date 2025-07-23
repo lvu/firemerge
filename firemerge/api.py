@@ -42,11 +42,14 @@ router = APIRouter()
 @router.post("/api/parse_statement")
 async def parse_statement(
     file: UploadFile,
+    account_id: Annotated[int, Query(...)],
     timezone: Annotated[str, Query(description="Client timezone")],
+    firefly_client: FireflyClientDep,
 ) -> list[StatementTransaction]:
     """Handle file upload for bank statement"""
     try:
         content = BytesIO(await file.read())
+        account = await firefly_client.get_account(account_id)
 
         # Validate timezone
         try:
@@ -56,7 +59,7 @@ async def parse_statement(
 
         # Parse the statement
         try:
-            return list(StatementReader.read(content, tz))
+            return list(StatementReader.read(content, account, tz))
         except Exception as e:
             logger.exception("Parse failed")
             raise HTTPException(status_code=400, detail=str(e)) from e

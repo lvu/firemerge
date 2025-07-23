@@ -171,7 +171,6 @@ class FireflyClient:
 
     async def get_account(self, account_id: int) -> Account:
         resp = await self._request(f"v1/accounts/{account_id}")
-        logger.info(f"Got account {account_id}: {resp}")
         return Account.model_validate(
             {**resp["data"]["attributes"], "id": resp["data"]["id"]}
         )

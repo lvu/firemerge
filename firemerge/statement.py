@@ -7,11 +7,11 @@ from zoneinfo import ZoneInfo
 import pdfplumber
 from openpyxl import load_workbook
 
-from .model import Money, StatementTransaction
+from .model import Account, Money, StatementTransaction
 
 
 class StatementReader:
-    def __init__(self, data: BytesIO, tz: ZoneInfo):
+    def __init__(self, data: BytesIO, account: Account, tz: ZoneInfo):
         self.data = data
         self.tz = tz
 
@@ -19,11 +19,13 @@ class StatementReader:
         raise NotImplementedError()
 
     @classmethod
-    def read(cls, data: BytesIO, tz: ZoneInfo) -> list[StatementTransaction]:
+    def read(
+        cls, data: BytesIO, account: Account, tz: ZoneInfo
+    ) -> list[StatementTransaction]:
         errors = []
         for reader_class in cls.__subclasses__():
             try:
-                return list(reader_class(data, tz)._read())
+                return list(reader_class(data, account, tz)._read())
             except Exception as e:
                 errors.append(e)
         raise ExceptionGroup("Failed to read statement", errors)
