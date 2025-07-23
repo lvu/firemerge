@@ -5,16 +5,15 @@ import {
   getCurrencies,
   getTransactions,
   updateTransaction,
-  uploadTransactions,
   clearCache,
-  getStatementInfo,
   getAccount,
+  parseStatement,
 } from '../services/backend';
 import type {
   Account,
   Category,
   Currency,
-  StatementInfo,
+  StatementTransaction,
   Transaction,
   TransactionUpdateResponse,
 } from '../types/backend';
@@ -51,23 +50,22 @@ export const useUpdateTransaction = (
   });
 };
 
-export const useUploadTransactions = () => {
+export const useParseStatement = (onSuccess?: (data: StatementTransaction[]) => void) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (f: File) =>
-      uploadTransactions(f, Intl.DateTimeFormat().resolvedOptions().timeZone),
-    onSuccess: () => {
+    mutationFn: (f: File) => parseStatement(f, Intl.DateTimeFormat().resolvedOptions().timeZone),
+    onSuccess: (data: StatementTransaction[]) => {
       queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['global', 'statement_info'] });
+      onSuccess?.(data);
     },
   });
 };
 
-export const useTransactions = (accountId?: number) => {
+export const useTransactions = (accountId?: number, statement?: StatementTransaction[]) => {
   return useQuery<Transaction[] | null>({
     queryKey: ['global', 'transactions', accountId],
-    queryFn: () => getTransactions(accountId!),
-    enabled: !!accountId,
+    queryFn: () => getTransactions(accountId!, statement!),
+    enabled: !!accountId && !!statement,
     staleTime: Infinity,
   });
 };
@@ -103,14 +101,6 @@ export const useRefresh = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['global'] });
     },
-  });
-};
-
-export const useStatementInfo = () => {
-  return useQuery<StatementInfo | null>({
-    queryKey: ['global', 'statement_info'],
-    queryFn: getStatementInfo,
-    staleTime: Infinity,
   });
 };
 

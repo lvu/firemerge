@@ -1,23 +1,38 @@
 import { Alert, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
 import { UploadOutlined } from '@mui/icons-material';
 import { useRef } from 'react';
-import { useStatementInfo } from '../hooks/backend';
-import { useUploadTransactions } from '../hooks/backend';
+import { useParseStatement } from '../hooks/backend';
+import type { StatementTransaction } from '../types/backend';
 
-export default function StatementFileUpload() {
+export default function Statement({
+  statement,
+  setStatement,
+}: {
+  statement: StatementTransaction[] | null;
+  setStatement: (statement: StatementTransaction[]) => void;
+}) {
   const {
-    mutate: uploadTransactions,
+    mutate: parseStatement,
     isPending: isUploading,
     error: uploadError,
-  } = useUploadTransactions();
-  const { data: statementInfo } = useStatementInfo();
+  } = useParseStatement((data) => setStatement(data));
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
-    await uploadTransactions(e.target.files[0]);
+    parseStatement(e.target.files[0]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
+
+  const statementInfo =
+    statement === null
+      ? null
+      : {
+          num_transactions: statement.length,
+          start_date: statement[0]?.date,
+          end_date: statement[statement.length - 1]?.date,
+        };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -29,7 +44,8 @@ export default function StatementFileUpload() {
         <>
           <Typography>{statementInfo.num_transactions} transactions</Typography>
           <Typography>
-            {statementInfo.start_date}&nbsp;&ndash;&nbsp;{statementInfo.end_date}
+            {new Date(statementInfo.start_date).toLocaleDateString()}&nbsp;&ndash;&nbsp;
+            {new Date(statementInfo.end_date).toLocaleDateString()}
           </Typography>
         </>
       ) : (

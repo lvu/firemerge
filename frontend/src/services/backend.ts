@@ -5,7 +5,7 @@ import type {
   Transaction,
   TransactionCandidate,
   TransactionUpdateResponse,
-  StatementInfo,
+  StatementTransaction,
 } from '../types/backend';
 
 async function apiFetch<T>(
@@ -70,24 +70,40 @@ export async function getCurrencies(): Promise<Record<number, Currency>> {
   );
 }
 
-export async function getTransactions(accountId: number): Promise<Transaction[] | null> {
-  const data = await apiFetch<Transaction[]>(`/api/transactions`, {
-    account_id: accountId.toString(),
-  });
+export async function getTransactions(
+  accountId: number,
+  statement: StatementTransaction[],
+): Promise<Transaction[] | null> {
+  const data = await apiFetch<Transaction[]>(
+    `/api/transactions`,
+    {
+      account_id: accountId.toString(),
+    },
+    {
+      method: 'POST',
+      body: JSON.stringify(statement),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  );
   return data;
 }
 
-export async function uploadTransactions(file: File, timezone: string): Promise<void> {
+export async function parseStatement(
+  file: File,
+  timezone: string,
+): Promise<StatementTransaction[]> {
   const formData = new FormData();
   formData.append('file', file);
-  await apiFetch<void>(
-    `/api/upload`,
+  return (await apiFetch<StatementTransaction[]>(
+    `/api/parse_statement`,
     { timezone },
     {
       method: 'POST',
       body: formData,
     },
-  );
+  ))!;
 }
 
 export async function searchDescriptions(
@@ -117,10 +133,6 @@ export async function updateTransaction(
       },
     },
   ))!;
-}
-
-export async function getStatementInfo(): Promise<StatementInfo | null> {
-  return (await apiFetch<StatementInfo | null>(`/api/statement_info`))!;
 }
 
 export async function clearCache(): Promise<void> {

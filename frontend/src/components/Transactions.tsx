@@ -1,14 +1,20 @@
 import { Alert, Box, FormControlLabel, Stack, Switch } from '@mui/material';
-import type { Account, Transaction } from '../types/backend';
+import type { Account, StatementTransaction, Transaction } from '../types/backend';
 import { TransactionCard } from './TransactionCard';
 import { useState } from 'react';
 import { useTransactions } from '../hooks/backend';
 import { TransactionDialog } from './TransactionDialog';
 
-export const Transactions = ({ currentAccount }: { currentAccount: Account | null }) => {
+export const Transactions = ({
+  currentAccount,
+  statement,
+}: {
+  currentAccount: Account | null;
+  statement: StatementTransaction[] | null;
+}) => {
   const [showMatched, setShowMatched] = useState(true);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
-  const { data: transactions, error } = useTransactions(currentAccount?.id);
+  const { data: transactions, error } = useTransactions(currentAccount?.id, statement ?? undefined);
 
   if (error) {
     return <Alert severity="error">Error: {error.message}</Alert>;

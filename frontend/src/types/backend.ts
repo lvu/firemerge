@@ -63,10 +63,13 @@ export type Transaction = {
   candidates: TransactionCandidate[];
 };
 
-export type StatementInfo = {
-  num_transactions: number;
-  start_date: string;
-  end_date: string;
+export type StatementTransaction = {
+  name: string;
+  date: string;
+  amount: number;
+  foreign_amount?: number;
+  foreign_currency_code?: string;
+  meta: Record<string, string>;
 };
 
 export type TransactionUpdateResponse = {

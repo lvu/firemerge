@@ -1,6 +1,6 @@
 import { CurrentAccount } from './CurrentAccount';
 import { useState } from 'react';
-import type { Account } from '../types/backend';
+import type { Account, StatementTransaction } from '../types/backend';
 import StatementFileUpload from './Statement';
 import { Transactions } from './Transactions';
 import { Container, Typography, AppBar, Toolbar, Stack } from '@mui/material';
@@ -8,6 +8,7 @@ import { RefreshButton } from './RefreshButton';
 
 export const Main = () => {
   const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
+  const [statement, setStatement] = useState<StatementTransaction[] | null>(null);
 
   return (
     <>
@@ -23,9 +24,9 @@ export const Main = () => {
         <Stack direction="column" spacing={2}>
           <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
             <CurrentAccount currentAccount={currentAccount} setCurrentAccount={setCurrentAccount} />
-            <StatementFileUpload />
+            <StatementFileUpload statement={statement} setStatement={setStatement} />
           </Stack>
-          <Transactions currentAccount={currentAccount} />
+          <Transactions currentAccount={currentAccount} statement={statement} />
         </Stack>
       </Container>
     </>
