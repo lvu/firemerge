@@ -9,4 +9,14 @@ export default defineConfig({
       '/api': 'http://localhost:8080',
     },
   },
+  build: {
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "@mui/material"],
+        },
+      },
+    },
+  },
 });

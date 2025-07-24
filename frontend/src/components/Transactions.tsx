@@ -5,13 +5,13 @@ import { useState } from 'react';
 import { useTransactions } from '../hooks/backend';
 import { TransactionDialog } from './TransactionDialog';
 
-export const Transactions = ({
+export default function Transactions({
   currentAccount,
   statement,
 }: {
   currentAccount: Account | null;
   statement: StatementTransaction[] | null;
-}) => {
+}) {
   const [showMatched, setShowMatched] = useState(true);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const { data: transactions, error } = useTransactions(currentAccount?.id, statement ?? undefined);

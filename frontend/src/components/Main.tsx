@@ -1,10 +1,10 @@
-import { CurrentAccount } from './CurrentAccount';
 import { useState } from 'react';
+import { CurrentAccount } from './CurrentAccount';
 import type { Account, StatementTransaction } from '../types/backend';
-import StatementFileUpload from './Statement';
-import { Transactions } from './Transactions';
 import { Container, Typography, AppBar, Toolbar, Stack } from '@mui/material';
 import { RefreshButton } from './RefreshButton';
+import Transactions from './Transactions';
+import Statement from './Statement';
 
 export const Main = () => {
   const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
@@ -31,7 +31,7 @@ export const Main = () => {
               }}
             />
             {currentAccount && (
-              <StatementFileUpload
+              <Statement
                 statement={statement}
                 accountId={currentAccount.id!}
                 setStatement={setStatement}
