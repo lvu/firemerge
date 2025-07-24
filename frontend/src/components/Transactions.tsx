@@ -58,4 +58,4 @@ export default function Transactions({
       </Stack>
     </Box>
   );
-};
+}

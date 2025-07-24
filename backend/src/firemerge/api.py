@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from fastapi import (
     APIRouter,
     HTTPException,
+    Path,
     Query,
     Response,
     UploadFile,
@@ -211,9 +212,9 @@ async def clear_cache(firefly_client: FireflyClientDep) -> None:
     await firefly_client.clear_cache()
 
 
-@api_router.get("/taxer_statement")
+@api_router.get("/accounts/{account_id}/taxer-statement")
 async def get_taxer_statement(
-    account_id: Annotated[int, Query(...)],
+    account_id: int,
     start_date: Annotated[
         str, Query(..., description="Start date in ISO format (YYYY-MM-DD)")
     ],

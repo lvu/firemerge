@@ -102,11 +102,11 @@ export const TransactionCard = ({
           title={
             <Typography variant="h6" sx={{ flex: 1 }}>
               {currencySymbol} {transaction.amount}
-              {transaction.foreign_amount &&
+              {transaction.foreign_amount && (
                 <Box component="span" sx={{ color: 'text.secondary', ml: 2 }}>
                   ({foreignCurrencySymbol} {transaction.foreign_amount})
                 </Box>
-              }
+              )}
             </Typography>
           }
           subheader={

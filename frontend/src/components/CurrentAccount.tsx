@@ -3,6 +3,7 @@ import { Alert, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/mater
 import { useAccounts, useAccountDetails, useCurrencies } from '../hooks/backend';
 import { ExpandCircleDown } from '@mui/icons-material';
 import { useRef, useState } from 'react';
+import { StatementExport } from './StatementExport';
 
 export const CurrentAccount = ({
   currentAccount,
@@ -49,6 +50,7 @@ export const CurrentAccount = ({
       <IconButton onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}>
         <ExpandCircleDown />
       </IconButton>
+      {currentAccount && <StatementExport account={currentAccount} />}
       <Menu
         anchorEl={accountMenuRef.current}
         open={isAccountMenuOpen}
