@@ -167,7 +167,7 @@ class StatementTransaction(BaseModel):
     amount: Money
     foreign_amount: Optional[Money]
     foreign_currency_code: Optional[str]
-    meta: dict[str, str]
+    notes: Optional[str] = None
     fee: Optional[str] = None
 
 

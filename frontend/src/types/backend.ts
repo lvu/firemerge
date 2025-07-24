@@ -69,7 +69,7 @@ export type StatementTransaction = {
   amount: number;
   foreign_amount?: number;
   foreign_currency_code?: string;
-  meta: Record<string, string>;
+  notes?: string;
 };
 
 export type TransactionUpdateResponse = {

@@ -1,7 +1,7 @@
 import csv
 from datetime import datetime
 from decimal import Decimal
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
 from typing import Iterable, NamedTuple, Optional
 from zoneinfo import ZoneInfo
 
@@ -11,9 +11,14 @@ from openpyxl import load_workbook
 from firemerge.model import Account, Money, StatementTransaction
 
 
+def make_notes(meta: dict[str, str]) -> Optional[str]:
+    return "\n".join(f"{k}: {v}" for k, v in meta.items()) if meta else None
+
+
 class StatementReader:
     def __init__(self, data: BytesIO, account: Account, tz: ZoneInfo):
         self.data = data
+        self.account = account
         self.tz = tz
 
     def _read(self) -> Iterable[StatementTransaction]:
@@ -25,6 +30,7 @@ class StatementReader:
     ) -> list[StatementTransaction]:
         errors = []
         for reader_class in cls.__subclasses__():
+            data.seek(0)
             try:
                 return list(reader_class(data, account, tz)._read())
             except Exception as e:
@@ -77,7 +83,7 @@ class AvalStatementReader(StatementReader):
                                 foreign_currency_code=row[7]
                                 if row[5] == row[6]
                                 else None,
-                                meta={"Op Type": row[3], "Description": row[4]},
+                                notes=make_notes({"Op Type": row[3], "Description": row[4]}),
                             )
             if not found:
                 raise ValueError("Statement not found")
@@ -88,8 +94,7 @@ class _ABRecord(NamedTuple):
     currency: str
     date: datetime
     doc_number: str
-    debit: Optional[Money]
-    credit: Optional[Money]
+    amount: Optional[Money]
     purpose: str
 
 
@@ -115,26 +120,52 @@ class AvalBusinessStatementReader(StatementReader):
     ]
 
     def _read(self) -> Iterable[StatementTransaction]:
-        reader = csv.reader(self.data.read().decode("cp1251").splitlines(), delimiter=";")
+        reader = csv.reader(TextIOWrapper(self.data, encoding="cp1251"), delimiter=";")
         header = next(reader)
         if header != self.HEADER:
             print(header)
             raise ValueError("Header mismatch")
-        records = [
-            _ABRecord(
+        own_records = []
+        other_records_map = {}
+        for row in reader:
+            if row[13] and row[14]:
+                raise ValueError("Both debit and credit are present")
+            record = _ABRecord(
                 account=row[2],
                 currency=row[3],
-                date=datetime.strptime(row[4], "%d.%m.%Y %H:%M"),
+                date=datetime.strptime(row[4], "%d.%m.%Y %H:%M").replace(tzinfo=self.tz),
                 doc_number=row[11],
-                debit=Money(row[13]) if row[13] else None,
-                credit=Money(row[14]) if row[14] else None,
+                amount=-Money(row[13]) if row[13] else Money(row[14]),
                 purpose=row[15],
             )
-            for row in reader
-            if row[0]
-        ]
-        return records
-
+            if not record.amount:
+                continue
+            if record.account == self.account.iban:
+                own_records.append(record)
+            else:
+                other_records_map[record.doc_number] = record
+        own_records.sort(key=lambda x: x.date)
+        for record in own_records:
+            if (other_record := other_records_map.get(record.doc_number)):
+                if record.amount * other_record.amount >= 0:
+                    raise ValueError("Same direction")
+                yield StatementTransaction(
+                    name=record.purpose,
+                    date=record.date,
+                    amount=record.amount,
+                    foreign_amount=other_record.amount,
+                    foreign_currency_code=other_record.currency,
+                    notes=make_notes({"Desciption 1": record.purpose, "Description 2": other_record.purpose, "Account": other_record.account}),
+                )
+            else:
+                yield StatementTransaction(
+                    name=record.purpose,
+                    date=record.date,
+                    amount=record.amount,
+                    notes=make_notes({"Description": record.purpose}),
+                    foreign_amount=None,
+                    foreign_currency_code=None,
+                )
 
 class PrivatStatementReader(StatementReader):
     HEADER = [
@@ -180,13 +211,5 @@ class PrivatStatementReader(StatementReader):
                 foreign_currency_code=str(values[5])
                 if values[4] == values[6]
                 else None,
-                meta={"Category": str(values[1]), "Description": str(values[3])},
+                notes=make_notes({"Category": str(values[1]), "Description": str(values[3])}),
             )
-
-
-if __name__ == "__main__":
-    import sys
-    with open(sys.argv[1], "rb") as f:
-        reader = AvalBusinessStatementReader(f, ZoneInfo("Europe/Kiev"))
-        for record in reader._read():
-            print(record)

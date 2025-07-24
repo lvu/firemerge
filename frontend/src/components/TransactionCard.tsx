@@ -1,5 +1,6 @@
 import {
   Badge,
+  Box,
   Button,
   Card,
   CardActionArea,
@@ -80,8 +81,12 @@ export const TransactionCard = ({
     annotated: theme.palette.success.main,
     unmatched: theme.palette.warning.main,
   }[transaction.state];
+
   const currencySymbol = currentAccount.currency_id
     ? (currencies?.[currentAccount.currency_id]?.symbol ?? '')
+    : '';
+  const foreignCurrencySymbol = transaction.foreign_currency_id
+    ? (currencies?.[transaction.foreign_currency_id]?.symbol ?? '')
     : '';
 
   return (
@@ -96,8 +101,12 @@ export const TransactionCard = ({
         <CardHeader
           title={
             <Typography variant="h6" sx={{ flex: 1 }}>
-              {currencySymbol}
-              {transaction.amount}
+              {currencySymbol} {transaction.amount}
+              {transaction.foreign_amount &&
+                <Box component="span" sx={{ color: 'text.secondary', ml: 2 }}>
+                  ({foreignCurrencySymbol} {transaction.foreign_amount})
+                </Box>
+              }
             </Typography>
           }
           subheader={

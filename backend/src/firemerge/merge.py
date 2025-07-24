@@ -16,13 +16,9 @@ from .model import (
 
 
 MAX_CANDIDATES = 10
-SCORE_CUTOFF = 95
+SCORE_CUTOFF = 93
 
 TMatch = TypeVar("TMatch", bound=Transaction | TransactionCandidate)
-
-
-def meta_to_notes(meta: dict[str, str]) -> Optional[str]:
-    return "\n".join(f"{k}: {v}" for k, v in meta.items()) if meta else None
 
 
 def best_matches(
@@ -89,7 +85,7 @@ def match_single_transaction(
     ]
     if not candidates:
         return None
-    if res := best_matches(candidates, meta_to_notes(st.meta), 1, lambda tr: tr.notes):
+    if res := best_matches(candidates, st.notes, 1, lambda tr: tr.notes):
         return res[0][0]
     return candidates[0]
 
@@ -110,14 +106,13 @@ def merge_transactions(
     for idx, st in enumerate(statement):
         if (tr := match_single_transaction(transactions_to_match, st)) is not None:
             transactions_to_match.remove(tr)
-            notes = meta_to_notes(st.meta)
             result.append(
                 tr.as_display_transaction(current_account_id).model_copy(
                     update={
                         "state": TransactionState.Matched
-                        if tr.notes == notes
+                        if tr.notes == st.notes
                         else TransactionState.Annotated,
-                        "notes": notes,
+                        "notes": st.notes,
                     }
                 )
             )
@@ -139,9 +134,9 @@ def merge_transactions(
                         "foreign_currency_id": currency_map[st.foreign_currency_code].id
                         if st.foreign_currency_code
                         else None,
-                        "notes": meta_to_notes(st.meta),
+                        "notes": st.notes,
                         "candidates": best_candidates(
-                            candidates, meta_to_notes(st.meta), lambda tr: tr.notes
+                            candidates, st.notes, lambda tr: tr.notes
                         ),
                     }
                 )
