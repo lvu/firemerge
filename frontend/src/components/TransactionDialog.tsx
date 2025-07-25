@@ -105,7 +105,7 @@ export const TransactionDialog = ({
         <Button onClick={onClose}>Cancel</Button>
         <Button
           onClick={() => updateTransactionMutation()}
-          disabled={isPending || !transaction?.account_id}
+          disabled={isPending || !(transaction?.account_id || transaction?.account_name)}
         >
           Save
         </Button>
