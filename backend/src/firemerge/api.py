@@ -134,6 +134,7 @@ async def store_transaction(
         tr_type = TransactionType.Transfer
         source_id = account_id
         source_name = account.name
+        assert transaction.account_id is not None
         destination_id = transaction.account_id
         destination_name = transaction.account_name
     elif transaction.type is DisplayTransactionType.TransferIn:
@@ -145,7 +146,6 @@ async def store_transaction(
         destination_name = account.name
     elif transaction.type is DisplayTransactionType.Deposit:
         tr_type = TransactionType.Deposit
-        assert transaction.account_id is not None
         source_id = transaction.account_id
         source_name = transaction.account_name
         destination_id = account_id
