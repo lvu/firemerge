@@ -103,7 +103,10 @@ export const TransactionDialog = ({
       <DialogActions>
         {error && <Alert severity="error">{error.message}</Alert>}
         <Button onClick={onClose}>Cancel</Button>
-        <Button onClick={() => updateTransactionMutation()} disabled={isPending}>
+        <Button
+          onClick={() => updateTransactionMutation()}
+          disabled={isPending || !transaction?.account_id}
+        >
           Save
         </Button>
       </DialogActions>

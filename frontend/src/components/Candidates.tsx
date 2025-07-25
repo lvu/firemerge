@@ -8,11 +8,13 @@ import {
   Box,
   Typography,
   Stack,
+  Button,
 } from '@mui/material';
 import { enrichTransaction, type Transaction, type TransactionCandidate } from '../types/backend';
 import type { Category, Account } from '../types/backend';
 import { TransactionTypeLabel } from './TransactionTypeLabel';
 import { useAccounts, useCategories } from '../hooks/backend';
+import { ArrowCircleUp } from '@mui/icons-material';
 
 const CandidateRow = ({
   candidate,
@@ -27,7 +29,7 @@ const CandidateRow = ({
   transaction: Transaction;
   setTransaction: (transaction: Transaction) => void;
 }) => {
-  const onRowDoubleClick = (candidate: TransactionCandidate) => {
+  const applyCandidate = (candidate: TransactionCandidate) => {
     setTransaction(enrichTransaction(transaction, candidate));
   };
 
@@ -50,8 +52,13 @@ const CandidateRow = ({
           },
           cursor: 'pointer',
         }}
-        onDoubleClick={() => onRowDoubleClick(candidate)}
+        onDoubleClick={() => applyCandidate(candidate)}
       >
+        <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1 }}>
+          <Button variant="contained" color="primary" onClick={() => applyCandidate(candidate)}>
+            <ArrowCircleUp />
+          </Button>
+        </TableCell>
         <TableCell>
           <TransactionTypeLabel type={candidate.type} />
         </TableCell>
@@ -80,27 +87,30 @@ export const Candidates = ({
     return null;
   }
   return (
-    <Table>
-      <TableHead>
-        <TableRow>
-          <TableCell>Type</TableCell>
-          <TableCell>Description</TableCell>
-          <TableCell>Category</TableCell>
-          <TableCell>Account</TableCell>
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        {transaction.candidates.map((candidate, index) => (
-          <CandidateRow
-            key={index}
-            candidate={candidate}
-            categories={categories!}
-            accounts={accounts!}
-            transaction={transaction}
-            setTransaction={setTransaction}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <Box sx={{ overflowX: 'auto', width: '100%' }}>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1 }}>&nbsp;</TableCell>
+            <TableCell>Type</TableCell>
+            <TableCell>Description</TableCell>
+            <TableCell>Category</TableCell>
+            <TableCell>Account</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {transaction.candidates.map((candidate, index) => (
+            <CandidateRow
+              key={index}
+              candidate={candidate}
+              categories={categories!}
+              accounts={accounts!}
+              transaction={transaction}
+              setTransaction={setTransaction}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </Box>
   );
 };
