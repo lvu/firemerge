@@ -22,12 +22,11 @@ export default function Statement({
     mutate: addStatement,
     isPending: isAdding,
     error: addError,
-  } = useParseStatement((data) => setStatement([...(statement ?? []), ...data].sort((a, b) => a.date.localeCompare(b.date))));
+  } = useParseStatement((data) =>
+    setStatement([...(statement ?? []), ...data].sort((a, b) => a.date.localeCompare(b.date))),
+  );
 
-  const handleFileChange = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-    replace: boolean,
-  ) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, replace: boolean) => {
     if (!e.target.files?.length) return;
     if (replace) {
       replaceStatement({ file: e.target.files[0], accountId });
@@ -55,24 +54,39 @@ export default function Statement({
       {replaceError || addError ? (
         <Alert severity="error">{replaceError?.message || addError?.message}</Alert>
       ) : statementInfo ? (
-        <>
+        <Stack direction="column" spacing={1}>
           <Typography>{statementInfo.num_transactions} transactions</Typography>
           <Typography>
             {new Date(statementInfo.start_date).toLocaleDateString()}&nbsp;&ndash;&nbsp;
             {new Date(statementInfo.end_date).toLocaleDateString()}
           </Typography>
-        </>
+        </Stack>
       ) : (
         <Typography>No statement uploaded</Typography>
       )}
-      <IconButton component="label" disabled={isReplacing} color="inherit">
-        {isReplacing ? <CircularProgress size={20} /> : <UploadOutlined />}
-        <input type="file" hidden onChange={(e) => handleFileChange(e, true)} ref={fileInputRef} />
-      </IconButton>
-      <IconButton component="label" disabled={isAdding} color="inherit">
-        {isAdding ? <CircularProgress size={20} /> : <AddBox />}
-        <input type="file" hidden onChange={(e) => handleFileChange(e, false)} ref={fileInputRef} />
-      </IconButton>
+      <Stack direction="column" alignItems="center" spacing={1}>
+        <IconButton component="label" disabled={isReplacing} color="inherit">
+          {isReplacing ? <CircularProgress size={20} /> : <UploadOutlined />}
+          <input
+            type="file"
+            hidden
+            onChange={(e) => handleFileChange(e, true)}
+            ref={fileInputRef}
+          />
+        </IconButton>
+        {statement && (
+          <IconButton component="label" disabled={isAdding} color="inherit">
+            {isAdding ? <CircularProgress size={20} /> : <AddBox />}
+            <input
+              type="file"
+              hidden
+              onChange={(e) => handleFileChange(e, false)}
+              ref={fileInputRef}
+              accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/pdf"
+            />
+          </IconButton>
+        )}
+      </Stack>
     </Stack>
   );
 }
