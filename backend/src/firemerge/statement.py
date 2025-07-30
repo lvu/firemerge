@@ -199,6 +199,8 @@ class PrivatStatementReader(StatementReader):
                 continue
             assert isinstance(values[4], (float, int))
             assert isinstance(values[6], (float, int))
+            if values[3].startswith("Зі своєї картки") or values[3].startswith("На свою картку"):
+                continue
             yield StatementTransaction(
                 name=str(values[3]),
                 date=datetime.strptime(str(values[0]), "%d.%m.%Y %H:%M:%S").replace(
