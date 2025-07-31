@@ -147,6 +147,8 @@ class AvalBusinessStatementReader(StatementReader):
         own_records.sort(key=lambda x: x.date)
         for record in own_records:
             if (other_record := other_records_map.get(record.doc_number)):
+                assert record.amount is not None
+                assert other_record.amount is not None
                 if record.amount * other_record.amount >= 0:
                     raise ValueError("Same direction")
                 yield StatementTransaction(
@@ -199,8 +201,6 @@ class PrivatStatementReader(StatementReader):
                 continue
             assert isinstance(values[4], (float, int))
             assert isinstance(values[6], (float, int))
-            if values[3].startswith("Зі своєї картки") or values[3].startswith("На свою картку"):
-                continue
             yield StatementTransaction(
                 name=str(values[3]),
                 date=datetime.strptime(str(values[0]), "%d.%m.%Y %H:%M:%S").replace(

@@ -1,18 +1,12 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
+from typing import Annotated, Optional
 
-from pydantic import BaseModel, ConfigDict
-from pydantic_core import core_schema
+from pydantic import BaseModel, ConfigDict, PlainSerializer
 
 
-class Money(Decimal):
-    @classmethod
-    def __get_pydantic_core_schema__(cls, _, handler):
-        return core_schema.no_info_after_validator_function(
-            lambda x: cls(x).quantize(Decimal("0.01")), handler(Decimal)
-        )
+Money = Annotated[Decimal, PlainSerializer(lambda x: str(x.quantize(Decimal("0.01"))), return_type=str, when_used="unless-none")]
 
 
 class TransactionType(Enum):
@@ -46,6 +40,10 @@ class DisplayTransactionType(Enum):
     TransferOut = "transfer-out"
     Deposit = "deposit"
     Reconciliation = "reconciliation"
+
+
+class AccountSettings(BaseModel):
+    blacklist: list[str] = []
 
 
 class Account(BaseModel):

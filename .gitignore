@@ -5,3 +5,4 @@ __pycache__/
 statement.json
 .chrome/
 .idea/
+.vscode/

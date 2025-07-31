@@ -9,7 +9,6 @@ from zoneinfo import ZoneInfo
 from fastapi import (
     APIRouter,
     HTTPException,
-    Path,
     Query,
     Response,
     UploadFile,
@@ -131,20 +130,21 @@ async def store_transaction(
         destination_id = transaction.account_id
         destination_name = transaction.account_name
     elif transaction.type is DisplayTransactionType.TransferOut:
+        assert transaction.account_id is not None
         tr_type = TransactionType.Transfer
         source_id = account_id
         source_name = account.name
-        assert transaction.account_id is not None
         destination_id = transaction.account_id
         destination_name = transaction.account_name
     elif transaction.type is DisplayTransactionType.TransferIn:
-        tr_type = TransactionType.Transfer
         assert transaction.account_id is not None
+        tr_type = TransactionType.Transfer
         source_id = transaction.account_id
         source_name = transaction.account_name
         destination_id = account_id
         destination_name = account.name
     elif transaction.type is DisplayTransactionType.Deposit:
+        assert transaction.account_id is not None
         tr_type = TransactionType.Deposit
         source_id = transaction.account_id
         source_name = transaction.account_name
