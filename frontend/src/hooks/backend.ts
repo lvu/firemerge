@@ -106,6 +106,7 @@ export const useRefresh = () => {
     mutationFn: clearCache,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['global'] });
+      queryClient.invalidateQueries({ queryKey: ['account_details'] });
     },
   });
 };
