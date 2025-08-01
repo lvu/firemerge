@@ -153,7 +153,7 @@ class AvalBusinessStatementReader(StatementReader):
                     raise ValueError("Same direction")
                 yield StatementTransaction(
                     name=record.purpose,
-                    date=record.date,
+                    date=min(record.date, other_record.date),
                     amount=record.amount,
                     foreign_amount=other_record.amount,
                     foreign_currency_code=other_record.currency,

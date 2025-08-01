@@ -32,6 +32,7 @@ from firemerge.model import (
 )
 from firemerge.statement import StatementReader
 from firemerge.deps import FireflyClientDep
+from firemerge.util import async_collect
 
 
 logger = logging.getLogger("uvicorn.error")
@@ -170,6 +171,10 @@ async def store_transaction(
         notes=transaction.notes,
     )
 
+    if transaction.type is DisplayTransactionType.TransferIn and transaction.foreign_amount is not None:
+        new_transaction.amount, new_transaction.foreign_amount = new_transaction.foreign_amount, new_transaction.amount
+        new_transaction.currency_id, new_transaction.foreign_currency_id = new_transaction.foreign_currency_id, new_transaction.currency_id
+
     new_transaction = await firefly_client.store_transaction(new_transaction)
 
     firefly_client.clear_transactions_cache()
@@ -293,6 +298,7 @@ async def get_taxer_statement(
     return Response(content=csv_content, media_type="text/csv", headers=headers)
 
 
+@async_collect
 async def _get_transactions(
     account_id: int,
     firefly_client: FireflyClient,
@@ -301,4 +307,8 @@ async def _get_transactions(
     """Get transactions from Firefly III for the given account and date range"""
     if start_date is None:
         start_date = date.today() - timedelta(days=365)
-    return await firefly_client.get_transactions(account_id, start_date)
+    for tr in await firefly_client.get_transactions(account_id, start_date):
+        if tr.type is TransactionType.Transfer and tr.destination_id == account_id and tr.foreign_amount is not None:
+            tr.amount, tr.foreign_amount = tr.foreign_amount, tr.amount
+            tr.currency_id, tr.foreign_currency_id = tr.foreign_currency_id, tr.currency_id
+        yield tr

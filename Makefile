@@ -1,5 +1,5 @@
 run-backend:
-	cd backend && uv run firemerge
+	set -a && source .env && cd backend && uv run firemerge
 
 run-frontend:
 	cd frontend && npm run dev
