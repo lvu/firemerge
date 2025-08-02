@@ -77,12 +77,12 @@ class AvalStatementReader(StatementReader):
                                     row[0], "%d.%m.%Y %H:%M"
                                 ).replace(tzinfo=self.tz),
                                 amount=self._money(row[5]),
-                                foreign_amount=self._money(row[6])
+                                foreign_amount=None
                                 if row[5] == row[6]
-                                else None,
-                                foreign_currency_code=row[7]
+                                else self._money(row[6]),
+                                foreign_currency_code=None
                                 if row[5] == row[6]
-                                else None,
+                                else row[7],
                                 notes=make_notes({"Op Type": row[3], "Description": row[4]}),
                             )
             if not found:

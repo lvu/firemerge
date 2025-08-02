@@ -24,8 +24,8 @@ export const useUpdateTransaction = (
   onSuccess?: () => void,
 ) => {
   const queryClient = useQueryClient();
-  const { data: transactions } = useTransactions(accountId);
-  const { data: accounts } = useAccounts();
+  const transactions = queryClient.getQueryData<Transaction[]>(['global', 'transactions', accountId]);
+  const accounts = queryClient.getQueryData<Record<number, Account>>(['global', 'accounts']);
   return useMutation({
     mutationFn: () =>
       updateTransaction(accountId!, {
@@ -34,11 +34,13 @@ export const useUpdateTransaction = (
       }),
     onSuccess: (data: TransactionUpdateResponse) => {
       const { transaction: updated_transaction, account: updated_account } = data;
-      queryClient.setQueryData(
-        ['global', 'transactions', accountId],
-        transactions?.map((t) => (t.id === transaction.id ? updated_transaction : t)),
-      );
-      if (updated_account) {
+      if (transactions !== undefined) {
+        queryClient.setQueryData(
+          ['global', 'transactions', accountId],
+          transactions?.map((t) => (t.id === transaction.id ? updated_transaction : t)),
+        );
+      }
+      if (updated_account && accounts !== undefined) {
         queryClient.setQueryData(['global', 'accounts'], {
           ...accounts,
           [accountId!]: updated_account,

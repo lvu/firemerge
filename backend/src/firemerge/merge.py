@@ -24,8 +24,9 @@ TMatch = TypeVar("TMatch", bound=Transaction | TransactionCandidate)
 def best_matches(
     candidates: list[TMatch],
     query: Optional[str],
-    limit: int,
     extractor: Callable[[TMatch], Optional[str]],
+    limit: int = MAX_CANDIDATES,
+    score_cutoff: int = SCORE_CUTOFF,
 ) -> list[Tuple[TMatch, float]]:
     if query is None:
         return []
@@ -35,7 +36,7 @@ def best_matches(
         if (value := extractor(tr)) is not None
     }
     extracted = extractBests(
-        query, data, limit=MAX_CANDIDATES, score_cutoff=SCORE_CUTOFF
+        query, data, limit=limit, score_cutoff=score_cutoff
     )
     return [(candidates[idx], score) for _, score, idx in extracted]
 
@@ -60,13 +61,13 @@ def best_candidates(
     candidates: list[TransactionCandidate],
     query: Optional[str],
     extractor: Callable[[TransactionCandidate], Optional[str]],
+    limit: int = MAX_CANDIDATES,
+    score_cutoff: int = SCORE_CUTOFF,
 ) -> list[TransactionCandidate]:
     result = deduplicate_candidates(
         (
             candidate.model_copy(update={"score": score})
-            for candidate, score in best_matches(
-                candidates, query, MAX_CANDIDATES, extractor
-            )
+            for candidate, score in best_matches(candidates, query, extractor, limit, score_cutoff)
         ),
         ignore_notes=True,
     )
@@ -85,7 +86,7 @@ def match_single_transaction(
     ]
     if not candidates:
         return None
-    if res := best_matches(candidates, st.notes, 1, lambda tr: tr.notes):
+    if res := best_matches(candidates, st.notes, lambda tr: tr.notes, limit=1):
         return res[0][0]
     return candidates[0]
 
