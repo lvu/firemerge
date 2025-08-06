@@ -24,7 +24,11 @@ export const useUpdateTransaction = (
   onSuccess?: () => void,
 ) => {
   const queryClient = useQueryClient();
-  const transactions = queryClient.getQueryData<Transaction[]>(['global', 'transactions', accountId]);
+  const transactions = queryClient.getQueryData<Transaction[]>([
+    'global',
+    'transactions',
+    accountId,
+  ]);
   const accounts = queryClient.getQueryData<Record<number, Account>>(['global', 'accounts']);
   return useMutation({
     mutationFn: () =>
