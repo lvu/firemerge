@@ -16,6 +16,10 @@ export type Account = {
   current_balance?: number;
 };
 
+export type AccountSettings = {
+  blacklist: string[];
+};
+
 export type Category = {
   id: number;
   name: string;

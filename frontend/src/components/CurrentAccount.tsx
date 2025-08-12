@@ -1,9 +1,10 @@
 import type { Account } from '../types/backend';
-import { Alert, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/material';
+import { Alert, Grid, IconButton, Menu, MenuItem, Stack, Typography } from '@mui/material';
 import { useAccounts, useAccountDetails, useCurrencies } from '../hooks/backend';
 import { ExpandCircleDown } from '@mui/icons-material';
 import { useRef, useState } from 'react';
 import { StatementExport } from './StatementExport';
+import AccountSettings from './AccountSettings';
 
 export const CurrentAccount = ({
   currentAccount,
@@ -47,11 +48,14 @@ export const CurrentAccount = ({
       ) : (
         <Typography ref={accountMenuRef}>No account selected</Typography>
       )}
-      <Stack direction="column" alignItems="center" spacing={1}>
-        <IconButton onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}>
-          <ExpandCircleDown />
-        </IconButton>
+      <Grid container spacing={1}>
+        <Grid>
+          <IconButton onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}>
+            <ExpandCircleDown />
+          </IconButton>
+        </Grid>
         {currentAccount && <StatementExport account={currentAccount} />}
+        {currentAccount && <AccountSettings account={currentAccount} />}
         <Menu
           anchorEl={accountMenuRef.current}
           open={isAccountMenuOpen}
@@ -67,7 +71,7 @@ export const CurrentAccount = ({
             </MenuItem>
           ))}
         </Menu>
-      </Stack>
+      </Grid>
     </Stack>
   );
 };

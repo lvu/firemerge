@@ -19,6 +19,7 @@ from firemerge.firefly_client import FireflyClient
 from firemerge.merge import best_candidates, deduplicate_candidates, merge_transactions
 from firemerge.model import (
     Account,
+    AccountSettings,
     Category,
     Currency,
     DisplayTransaction,
@@ -217,6 +218,23 @@ async def search_descriptions(
 @api_router.post("/clear_cache")
 async def clear_cache(firefly_client: FireflyClientDep) -> None:
     await firefly_client.clear_cache()
+
+
+@api_router.get("/accounts/{account_id}/settings")
+async def get_account_settings(
+    account_id: int,
+    firefly_client: FireflyClientDep,
+) -> Optional[AccountSettings]:
+    return await firefly_client.get_account_settings(account_id)
+
+
+@api_router.post("/accounts/{account_id}/settings")
+async def update_account_settings(
+    account_id: int,
+    settings: Annotated[AccountSettings, Body(...)],
+    firefly_client: FireflyClientDep,
+) -> None:
+    await firefly_client.update_account_settings(account_id, settings)
 
 
 @api_router.get("/accounts/{account_id}/taxer-statement")

@@ -6,6 +6,7 @@ import type {
   TransactionCandidate,
   TransactionUpdateResponse,
   StatementTransaction,
+  AccountSettings,
 } from '../types/backend';
 
 async function apiFetch<T>(
@@ -48,6 +49,20 @@ export async function getAccounts(): Promise<Record<number, Account>> {
     },
     {} as Record<number, Account>,
   );
+}
+
+export async function getAccountSettings(accountId: number): Promise<AccountSettings> {
+  return (await apiFetch<AccountSettings>(`/api/accounts/${accountId}/settings`))!;
+}
+
+export async function updateAccountSettings(accountId: number, settings: AccountSettings): Promise<void> {
+  await apiFetch<void>(`/api/accounts/${accountId}/settings`, {}, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(settings),
+  });
 }
 
 export async function getCategories(): Promise<Record<number, Category>> {

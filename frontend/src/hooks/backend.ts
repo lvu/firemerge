@@ -8,9 +8,12 @@ import {
   clearCache,
   getAccount,
   parseStatement,
+  getAccountSettings,
+  updateAccountSettings,
 } from '../services/backend';
 import type {
   Account,
+  AccountSettings,
   Category,
   Currency,
   StatementTransaction,
@@ -87,6 +90,25 @@ export const useAccounts = () => {
     queryKey: ['global', 'accounts'],
     queryFn: getAccounts,
     staleTime: Infinity,
+  });
+};
+
+export const useAccountSettings = (accountId?: number) => {
+  return useQuery<AccountSettings | null>({
+    queryKey: ['account_settings', accountId],
+    queryFn: () => getAccountSettings(accountId!),
+    enabled: !!accountId,
+    staleTime: Infinity,
+  });
+};
+
+export const useUpdateAccountSettings = (accountId?: number) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (settings: AccountSettings) => updateAccountSettings(accountId!, settings),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['account_settings', accountId] });
+    },
   });
 };
 

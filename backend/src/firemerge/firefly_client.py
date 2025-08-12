@@ -229,7 +229,7 @@ class FireflyClient:
         content = await self.download_attachment(settings_attachment.id)
         return AccountSettings.model_validate_json(content)
 
-    async def store_account_settings(self, account_id: int, settings: AccountSettings) -> None:
+    async def update_account_settings(self, account_id: int, settings: AccountSettings) -> None:
         settings_attachment = await self.get_account_settings_attachment(account_id)
         if settings_attachment is None:
             settings_attachment = await self.create_account_attachment(account_id, SETTINGS_ATTACHMENT_NAME, "Firemerge settings")
