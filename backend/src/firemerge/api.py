@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import date, datetime, timedelta
 from io import BytesIO, StringIO
-from typing import Annotated, List, Optional
+from typing import Annotated, AsyncIterable, List, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import (
@@ -55,6 +55,8 @@ async def parse_statement(
         content = BytesIO(await file.read())
         account = await firefly_client.get_account(account_id)
         settings = await firefly_client.get_account_settings(account_id)
+        if settings is None:
+            settings = AccountSettings()
 
         # Validate timezone
         try:
@@ -176,6 +178,8 @@ async def store_transaction(
     )
 
     if transaction.type is DisplayTransactionType.TransferIn and transaction.foreign_amount is not None:
+        assert new_transaction.foreign_currency_id is not None
+        assert new_transaction.foreign_amount is not None  # mypy bug?
         new_transaction.amount, new_transaction.foreign_amount = new_transaction.foreign_amount, new_transaction.amount
         new_transaction.currency_id, new_transaction.foreign_currency_id = new_transaction.foreign_currency_id, new_transaction.currency_id
 
@@ -324,7 +328,7 @@ async def _get_transactions(
     account_id: int,
     firefly_client: FireflyClient,
     start_date: Optional[date] = None,
-) -> List[Transaction]:
+) -> AsyncIterable[Transaction]:
     """Get transactions from Firefly III for the given account and date range"""
     if start_date is None:
         start_date = date.today() - timedelta(days=365)

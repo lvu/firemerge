@@ -1,5 +1,15 @@
 import { Settings } from '@mui/icons-material';
-import { DialogContent, DialogTitle, Dialog, IconButton, TextField, Autocomplete, Chip, DialogActions, Button } from '@mui/material';
+import {
+  DialogContent,
+  DialogTitle,
+  Dialog,
+  IconButton,
+  TextField,
+  Autocomplete,
+  Chip,
+  DialogActions,
+  Button,
+} from '@mui/material';
 import type { Account, AccountSettings } from '../types/backend';
 import { useEffect, useState } from 'react';
 import { useAccountSettings, useUpdateAccountSettings } from '../hooks/backend';
@@ -21,8 +31,8 @@ export default function AccountSettings({ account }: { account: Account }) {
     setIsOpen(false);
   };
 
-  console.log("initialSettings", initialSettings);
-  console.log("settings", settings);
+  console.log('initialSettings', initialSettings);
+  console.log('settings', settings);
 
   return (
     <>
@@ -43,9 +53,7 @@ export default function AccountSettings({ account }: { account: Account }) {
               renderValue={(value: readonly string[], getItemProps) =>
                 value.map((option: string, index: number) => {
                   const { key, ...itemProps } = getItemProps({ index });
-                  return (
-                    <Chip variant="outlined" label={option} key={key} {...itemProps} />
-                  );
+                  return <Chip variant="outlined" label={option} key={key} {...itemProps} />;
                 })
               }
               renderInput={(params) => <TextField {...params} label="Blacklist" />}
@@ -57,7 +65,16 @@ export default function AccountSettings({ account }: { account: Account }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          {settings !== null && !isLoadingSettings && <Button onClick={() => {updateSettings(settings); handleClose()}}>Save</Button>}
+          {settings !== null && !isLoadingSettings && (
+            <Button
+              onClick={() => {
+                updateSettings(settings);
+                handleClose();
+              }}
+            >
+              Save
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
     </>

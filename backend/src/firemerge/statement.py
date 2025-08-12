@@ -37,7 +37,7 @@ class StatementReader:
             try:
                 return list(
                     t for t in reader_class(data, account, tz)._read()
-                    if not any(b.lower() in t.notes.lower() for b in settings.blacklist)
+                    if not t.notes or not any(b.lower() in t.notes.lower() for b in settings.blacklist)
                 )
             except Exception as e:
                 errors.append(e)

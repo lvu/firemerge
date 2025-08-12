@@ -55,14 +55,21 @@ export async function getAccountSettings(accountId: number): Promise<AccountSett
   return (await apiFetch<AccountSettings>(`/api/accounts/${accountId}/settings`))!;
 }
 
-export async function updateAccountSettings(accountId: number, settings: AccountSettings): Promise<void> {
-  await apiFetch<void>(`/api/accounts/${accountId}/settings`, {}, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+export async function updateAccountSettings(
+  accountId: number,
+  settings: AccountSettings,
+): Promise<void> {
+  await apiFetch<void>(
+    `/api/accounts/${accountId}/settings`,
+    {},
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(settings),
     },
-    body: JSON.stringify(settings),
-  });
+  );
 }
 
 export async function getCategories(): Promise<Record<number, Category>> {
