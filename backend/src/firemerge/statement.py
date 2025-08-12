@@ -1,4 +1,5 @@
 import csv
+import logging
 from datetime import datetime
 from decimal import Decimal
 from io import BytesIO, TextIOWrapper
@@ -8,7 +9,9 @@ from zoneinfo import ZoneInfo
 import pdfplumber
 from openpyxl import load_workbook
 
-from firemerge.model import Account, Money, StatementTransaction
+from firemerge.model import Account, AccountSettings, Money, StatementTransaction
+
+logger = logging.getLogger("uvicorn.error")
 
 
 def make_notes(meta: dict[str, str]) -> Optional[str]:
@@ -26,13 +29,16 @@ class StatementReader:
 
     @classmethod
     def read(
-        cls, data: BytesIO, account: Account, tz: ZoneInfo
+        cls, data: BytesIO, account: Account, settings: AccountSettings, tz: ZoneInfo
     ) -> list[StatementTransaction]:
         errors = []
         for reader_class in cls.__subclasses__():
             data.seek(0)
             try:
-                return list(reader_class(data, account, tz)._read())
+                return list(
+                    t for t in reader_class(data, account, tz)._read()
+                    if not any(b.lower() in t.notes.lower() for b in settings.blacklist)
+                )
             except Exception as e:
                 errors.append(e)
         raise ExceptionGroup("Failed to read statement", errors)

@@ -54,6 +54,7 @@ async def parse_statement(
     try:
         content = BytesIO(await file.read())
         account = await firefly_client.get_account(account_id)
+        settings = await firefly_client.get_account_settings(account_id)
 
         # Validate timezone
         try:
@@ -63,7 +64,7 @@ async def parse_statement(
 
         # Parse the statement
         try:
-            return list(StatementReader.read(content, account, tz))
+            return StatementReader.read(content, account, settings, tz)
         except Exception as e:
             logger.exception("Parse failed")
             raise HTTPException(status_code=400, detail=str(e)) from e
