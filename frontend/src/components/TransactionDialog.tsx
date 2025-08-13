@@ -21,6 +21,7 @@ import type { Account, Transaction } from '../types/backend';
 import { useEffect, useState } from 'react';
 import { useUpdateTransaction } from '../hooks/backend';
 import { Loader } from './Loader';
+import { TransactionHeader, TransactionSubheader } from './Transaction';
 
 function TransactionForm({
   transaction,
@@ -97,11 +98,15 @@ export const TransactionDialog = ({
       <DialogTitle>Edit transaction</DialogTitle>
       <DialogContent>
         {transaction && (
+          <>
+          <TransactionHeader transaction={transaction} currentAccount={currentAccount} />
+          <TransactionSubheader transaction={transaction} />
           <TransactionForm
             transaction={transaction}
             setTransaction={setTransaction}
             currentAccount={currentAccount}
           />
+          </>
         )}
       </DialogContent>
       <DialogActions>

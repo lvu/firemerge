@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { CurrentAccountChoice } from './CurrentAccount';
 import type { Account, StatementTransaction } from '../types/backend';
 import { Container } from '@mui/material';
-import Transactions from './Transactions';
+import TransactionList from './TransactionList';
 import { StatementUpload } from './Statement';
 import { Header } from './Header';
 import { MenuDrawer } from './Menu';
@@ -38,7 +38,7 @@ export const Main = () => {
           />
         )}
         {currentAccount && statement !== null && (
-          <Transactions currentAccount={currentAccount} statement={statement} />
+          <TransactionList currentAccount={currentAccount} statement={statement} />
         )}
       </Container>
     </>

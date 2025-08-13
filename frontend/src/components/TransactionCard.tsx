@@ -1,6 +1,5 @@
 import {
   Badge,
-  Box,
   Button,
   Card,
   CardActionArea,
@@ -17,14 +16,9 @@ import { RequestQuoteOutlined } from '@mui/icons-material';
 import { alpha, useTheme } from '@mui/material/styles';
 import { enrichTransaction, type Account, type Transaction } from '../types/backend';
 import { Loader } from './Loader';
-import { useAccounts, useCategories, useCurrencies, useUpdateTransaction } from '../hooks/backend';
+import { useAccounts, useCategories, useUpdateTransaction } from '../hooks/backend';
 import { TransactionTypeLabel } from './TransactionTypeLabel';
-
-const dateFormat = new Intl.DateTimeFormat(navigator.language, {
-  hour12: false,
-  dateStyle: 'full',
-  timeStyle: 'short',
-});
+import { TransactionHeader, TransactionSubheader } from './Transaction';
 
 const DataField = ({ label, value }: { label: string; value?: string | React.ReactNode }) => {
   return (
@@ -52,7 +46,6 @@ export const TransactionCard = ({
   visible: boolean;
   onEdit: (transaction: Transaction) => void;
 }) => {
-  const { data: currencies } = useCurrencies();
   const { data: categories } = useCategories();
   const { data: accounts } = useAccounts();
 
@@ -82,13 +75,6 @@ export const TransactionCard = ({
     unmatched: theme.palette.warning.main,
   }[transaction.state];
 
-  const currencySymbol = currentAccount.currency_id
-    ? (currencies?.[currentAccount.currency_id]?.symbol ?? '')
-    : '';
-  const foreignCurrencySymbol = transaction.foreign_currency_id
-    ? (currencies?.[transaction.foreign_currency_id]?.symbol ?? '')
-    : '';
-
   return (
     <Card
       sx={{
@@ -99,21 +85,8 @@ export const TransactionCard = ({
       <Loader open={isPending} />
       <CardActionArea onClick={() => onEdit(transaction)} disabled={!canEdit}>
         <CardHeader
-          title={
-            <Typography variant="h6" sx={{ flex: 1 }}>
-              {currencySymbol} {transaction.amount}
-              {transaction.foreign_amount && (
-                <Box component="span" sx={{ color: 'text.secondary', ml: 2 }}>
-                  ({foreignCurrencySymbol} {transaction.foreign_amount})
-                </Box>
-              )}
-            </Typography>
-          }
-          subheader={
-            <Typography variant="subtitle1" sx={{ flex: 1 }}>
-              {dateFormat.format(Date.parse(transaction.date))}
-            </Typography>
-          }
+          title={<TransactionHeader transaction={transaction} currentAccount={currentAccount} />}
+          subheader={<TransactionSubheader transaction={transaction} />}
           action={
             <Stack direction="row" spacing={2} alignItems="center">
               {!!transaction.candidates?.length && (

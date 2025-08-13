@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useTransactions } from '../hooks/backend';
 import { TransactionDialog } from './TransactionDialog';
 
-export default function Transactions({
+export default function TransactionList({
   currentAccount,
   statement,
 }: {
