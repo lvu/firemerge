@@ -4,8 +4,10 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
   ],
-  "types": [
-    "vite/client",
-    "vite-plugin-svgr/client"
-  ]
+  "compilerOptions": {
+    "types": [
+      "vite/client",
+      "vite-plugin-svgr/client"
+    ]
+  }
 }
