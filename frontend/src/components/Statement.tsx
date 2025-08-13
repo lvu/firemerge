@@ -1,92 +1,118 @@
-import { Alert, CircularProgress, IconButton, Stack, Typography } from '@mui/material';
-import { AddBox, UploadOutlined } from '@mui/icons-material';
-import { useRef } from 'react';
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import { UploadOutlined } from '@mui/icons-material';
 import { useParseStatement } from '../hooks/backend';
 import type { StatementTransaction } from '../types/backend';
+import { useDropzone } from 'react-dropzone';
+import { Loader } from './Loader';
 
-export default function Statement({
+export function StatementUpload({
+  statement,
+  accountId,
+  setStatement,
+  replace,
+  onClose,
+}: {
+  statement: StatementTransaction[] | null;
+  accountId: number;
+  setStatement: (statement: StatementTransaction[] | null) => void;
+  replace: boolean;
+  onClose?: () => void;
+}) {
+  const {
+    mutate: processStatement,
+    isPending: isProcessing,
+    error: processingError,
+  } = useParseStatement((data) => {
+    console.log('data', data);
+    console.log('statement', statement);
+    if (replace) {
+      setStatement(data);
+    } else {
+      setStatement([...(statement ?? []), ...data].sort((a, b) => a.date.localeCompare(b.date)));
+    }
+    onClose?.();
+  });
+
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      for (const file of acceptedFiles) {
+        processStatement({ file, accountId });
+      }
+    },
+  });
+
+  return (
+    <Box
+      {...getRootProps()}
+      sx={{
+        border: '2px dashed',
+        borderColor: 'primary.main',
+        borderRadius: 2,
+        p: 4,
+        textAlign: 'center',
+        cursor: 'pointer',
+      }}
+    >
+      <Loader open={isProcessing} />
+      <input {...getInputProps()} />
+      <UploadOutlined sx={{ fontSize: 40, mb: 1 }} />
+      <Typography variant="h6">Upload statement</Typography>
+      <Typography variant="body2" color="text.secondary">
+        or click to select
+      </Typography>
+      {processingError && <Alert severity="error">{processingError.message}</Alert>}
+    </Box>
+  );
+}
+
+export function StatementUploadDialog({
+  open,
+  onClose,
   statement,
   accountId,
   setStatement,
 }: {
+  open: boolean;
+  onClose: () => void;
   statement: StatementTransaction[] | null;
   accountId: number;
-  setStatement: (statement: StatementTransaction[]) => void;
+  setStatement: (statement: StatementTransaction[] | null) => void;
 }) {
-  const {
-    mutate: replaceStatement,
-    isPending: isReplacing,
-    error: replaceError,
-  } = useParseStatement((data) => setStatement(data));
-  const {
-    mutate: addStatement,
-    isPending: isAdding,
-    error: addError,
-  } = useParseStatement((data) =>
-    setStatement([...(statement ?? []), ...data].sort((a, b) => a.date.localeCompare(b.date))),
-  );
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, replace: boolean) => {
-    if (!e.target.files?.length) return;
-    if (replace) {
-      replaceStatement({ file: e.target.files[0], accountId });
-    } else {
-      addStatement({ file: e.target.files[0], accountId });
-    }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const statementInfo =
-    statement === null
-      ? null
-      : {
-          num_transactions: statement.length,
-          start_date: statement[0]?.date,
-          end_date: statement[statement.length - 1]?.date,
-        };
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
   return (
-    <Stack direction="row" alignItems="center" spacing={2}>
-      {replaceError || addError ? (
-        <Alert severity="error">{replaceError?.message || addError?.message}</Alert>
-      ) : statementInfo ? (
-        <Stack direction="column" spacing={1}>
-          <Typography>{statementInfo.num_transactions} transactions</Typography>
-          <Typography>
-            {new Date(statementInfo.start_date).toLocaleDateString()}&nbsp;&ndash;&nbsp;
-            {new Date(statementInfo.end_date).toLocaleDateString()}
-          </Typography>
-        </Stack>
-      ) : (
-        <Typography>No statement uploaded</Typography>
-      )}
-      <Stack direction="column" alignItems="center" spacing={1}>
-        <IconButton component="label" disabled={isReplacing} color="inherit">
-          {isReplacing ? <CircularProgress size={20} /> : <UploadOutlined />}
-          <input
-            type="file"
-            hidden
-            onChange={(e) => handleFileChange(e, true)}
-            ref={fileInputRef}
-          />
-        </IconButton>
-        {statement && (
-          <IconButton component="label" disabled={isAdding} color="inherit">
-            {isAdding ? <CircularProgress size={20} /> : <AddBox />}
-            <input
-              type="file"
-              hidden
-              onChange={(e) => handleFileChange(e, false)}
-              ref={fileInputRef}
-              accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/pdf"
-            />
-          </IconButton>
-        )}
-      </Stack>
-    </Stack>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="md"
+      fullScreen={fullScreen}
+      aria-hidden={!open}
+    >
+      <DialogTitle>Upload additional statement</DialogTitle>
+      <DialogContent>
+        <StatementUpload
+          statement={statement}
+          accountId={accountId}
+          setStatement={setStatement}
+          replace={false}
+          onClose={onClose}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+      </DialogActions>
+    </Dialog>
   );
 }

@@ -16,9 +16,11 @@ import { useScrollTrigger } from '../hooks/scrollTrigger';
 export const Header = ({
   currentAccount,
   statement,
+  onClick,
 }: {
   currentAccount?: Account;
   statement?: StatementTransaction[];
+  onClick: () => void;
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -42,7 +44,11 @@ export const Header = ({
   const showStatementInfo = !scrollTrigger || !isMobile;
 
   return (
-    <AppBar position="sticky">
+    <AppBar
+      position="sticky"
+      onClick={onClick}
+      sx={{ cursor: currentAccount ? 'pointer' : 'default' }}
+    >
       <Toolbar sx={{ py: 2 }}>
         <Stack direction="row" spacing={3} alignItems="center" width="100%">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
