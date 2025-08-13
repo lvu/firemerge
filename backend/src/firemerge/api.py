@@ -36,8 +36,6 @@ from firemerge.deps import FireflyClientDep
 from firemerge.util import async_collect
 
 
-DESCRIPTION_SCORE_CUTOFF = 80
-
 logger = logging.getLogger("uvicorn.error")
 
 api_router = APIRouter(prefix="/api")
@@ -217,7 +215,8 @@ async def search_descriptions(
     candidates = deduplicate_candidates(
         (tr.as_candidate(account_id) for tr in app_transactions), ignore_notes=True
     )
-    return best_candidates(candidates, query, lambda tr: tr.description, score_cutoff=DESCRIPTION_SCORE_CUTOFF)
+    candidates = [c for c in candidates if query.lower() in c.description.lower()]
+    return best_candidates(candidates, query, lambda tr: tr.description, score_cutoff=0)
 
 
 @api_router.post("/clear_cache")

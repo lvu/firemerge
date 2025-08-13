@@ -7,15 +7,20 @@ export const DescriptionInput = ({
   accountId,
   transaction,
   setTransaction,
+  onStartQuery,
+  onEndQuery,
 }: {
   accountId: number;
   transaction: Transaction;
   setTransaction: (transaction: Transaction) => void;
+  onStartQuery: () => void;
+  onEndQuery: () => void;
 }) => {
   const updateCandidates = useDebouncedCallback((value: string) => {
-    searchDescriptions(accountId, value).then((candidates) =>
-      setTransaction({ ...transaction, candidates }),
-    );
+    onStartQuery();
+    searchDescriptions(accountId, value)
+      .then((candidates) => setTransaction({ ...transaction, candidates }))
+      .finally(onEndQuery);
   }, 500);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -31,6 +31,7 @@ function TransactionForm({
   setTransaction: (transaction: Transaction) => void;
   currentAccount: Account;
 }) {
+  const [isQuerying, setIsQuerying] = useState(false);
   return (
     <Grid container spacing={2}>
       <Grid size={{ xs: 12, md: 6 }}>
@@ -42,6 +43,8 @@ function TransactionForm({
             accountId={currentAccount.id}
             transaction={transaction}
             setTransaction={setTransaction}
+            onStartQuery={() => setIsQuerying(true)}
+            onEndQuery={() => setIsQuerying(false)}
           />
           <CategoryInput transaction={transaction} setTransaction={setTransaction} />
           <AccountInput transaction={transaction} setTransaction={setTransaction} />
@@ -55,6 +58,7 @@ function TransactionForm({
         </Stack>
       </Grid>
       <Grid size={{ xs: 12, md: 6 }}>
+        <Loader open={isQuerying} />
         <Stack direction="column" spacing={2}>
           <Typography variant="h6">Candidates</Typography>
           <Candidates transaction={transaction} setTransaction={setTransaction} />
