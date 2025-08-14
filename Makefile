@@ -11,7 +11,7 @@ ruff:
 	cd backend && uv run ruff check
 
 ruff-fix:
-	cd backend && uv run ruff check --fix
+	cd backend && uv run ruff format && uv run ruff check --fix
 
 check-backend: mypy ruff-fix ruff
 

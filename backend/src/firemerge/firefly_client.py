@@ -7,8 +7,8 @@ from typing import AsyncIterable, Optional, Self
 from uuid import uuid4
 
 from aiocache import cached
-from pydantic import BaseModel, ValidationError
 from httpx import AsyncClient, HTTPStatusError, Response
+from pydantic import BaseModel, ValidationError
 
 from firemerge.model import (
     Account,
@@ -54,7 +54,8 @@ class FireflyClient:
         token = os.getenv("FIREFLY_TOKEN")
         if not base_url or not token:
             raise ValueError(
-                "FIREFLY_BASE_URL and FIREFLY_TOKEN must be set in environment or .env file"
+                "FIREFLY_BASE_URL and FIREFLY_TOKEN must "
+                "be set in environment or .env file"
             )
         return cls(http_client, base_url, token)
 
@@ -90,7 +91,13 @@ class FireflyClient:
         started_at = monotonic()
         assert self._client is not None
         resp = await self._client.request(
-            method, url, headers=headers, params=params, json=json, content=content, timeout=TIMEOUT
+            method,
+            url,
+            headers=headers,
+            params=params,
+            json=json,
+            content=content,
+            timeout=TIMEOUT,
         )
         if not resp.is_success:
             raise HTTPStatusError(
@@ -174,7 +181,8 @@ class FireflyClient:
                 try:
                     account = await self.get_account(account_info["id"])
                     logger.info(
-                        f"Account type for {account_info['type']} is {account.type.value}; {account}"
+                        f"Account type for {account_info['type']}"
+                        f" is {account.type.value}; {account}"
                     )
                     self.account_type_map[account_info["type"]] = account.type.value
                 except ValidationError as e:
@@ -195,7 +203,9 @@ class FireflyClient:
             {**resp["data"]["attributes"], "id": resp["data"]["id"]}
         )
 
-    async def get_account_attachments(self, account_id: int) -> AsyncIterable[Attachment]:
+    async def get_account_attachments(
+        self, account_id: int
+    ) -> AsyncIterable[Attachment]:
         async for row in self._paging_get(f"v1/accounts/{account_id}/attachments"):
             yield Attachment.model_validate({**row["attributes"], "id": row["id"]})
 
@@ -204,19 +214,32 @@ class FireflyClient:
         return resp.content
 
     async def upload_attachment(self, attachment_id: int, content: bytes) -> None:
-        await self._request(f"v1/attachments/{attachment_id}/upload", method="POST", content=content, content_type="application/octet-stream")
+        await self._request(
+            f"v1/attachments/{attachment_id}/upload",
+            method="POST",
+            content=content,
+            content_type="application/octet-stream",
+        )
 
-    async def create_account_attachment(self, account_id: int, filename: str, title: str) -> Attachment:
-        resp = await self._json_request("v1/attachments", method="POST", json={
-            "filename": filename,
-            "title": title,
-            "attachable_type": "Account",
-            "attachable_id": account_id,
-        })
+    async def create_account_attachment(
+        self, account_id: int, filename: str, title: str
+    ) -> Attachment:
+        resp = await self._json_request(
+            "v1/attachments",
+            method="POST",
+            json={
+                "filename": filename,
+                "title": title,
+                "attachable_type": "Account",
+                "attachable_id": account_id,
+            },
+        )
         data = resp["data"]
         return Attachment.model_validate({**data["attributes"], "id": data["id"]})
 
-    async def get_account_settings_attachment(self, account_id: int) -> Optional[Attachment]:
+    async def get_account_settings_attachment(
+        self, account_id: int
+    ) -> Optional[Attachment]:
         async for att in self.get_account_attachments(account_id):
             if att.filename == SETTINGS_ATTACHMENT_NAME:
                 return att
@@ -229,11 +252,17 @@ class FireflyClient:
         content = await self.download_attachment(settings_attachment.id)
         return AccountSettings.model_validate_json(content)
 
-    async def update_account_settings(self, account_id: int, settings: AccountSettings) -> None:
+    async def update_account_settings(
+        self, account_id: int, settings: AccountSettings
+    ) -> None:
         settings_attachment = await self.get_account_settings_attachment(account_id)
         if settings_attachment is None:
-            settings_attachment = await self.create_account_attachment(account_id, SETTINGS_ATTACHMENT_NAME, "Firemerge settings")
-        await self.upload_attachment(settings_attachment.id, settings.model_dump_json().encode("utf-8"))
+            settings_attachment = await self.create_account_attachment(
+                account_id, SETTINGS_ATTACHMENT_NAME, "Firemerge settings"
+            )
+        await self.upload_attachment(
+            settings_attachment.id, settings.model_dump_json().encode("utf-8")
+        )
 
     @async_collect
     async def get_categories(self) -> AsyncIterable[Category]:

@@ -31,6 +31,9 @@ dev = [
 [project.scripts]
 firemerge = "firemerge.main:serve_web"
 
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
 [tool.mypy]
 plugins = [
   "pydantic.mypy"

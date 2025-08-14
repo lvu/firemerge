@@ -1,6 +1,6 @@
 from datetime import timedelta
-from typing import Callable, Iterable, Optional, Tuple, TypeVar
 from hashlib import md5
+from typing import Callable, Iterable, Optional, Tuple, TypeVar
 
 from thefuzz.process import extractBests
 
@@ -13,7 +13,6 @@ from .model import (
     TransactionCandidate,
     TransactionState,
 )
-
 
 MAX_CANDIDATES = 10
 SCORE_CUTOFF = 93
@@ -35,9 +34,7 @@ def best_matches(
         for idx, tr in enumerate(candidates)
         if (value := extractor(tr)) is not None
     }
-    extracted = extractBests(
-        query, data, limit=limit, score_cutoff=score_cutoff
-    )
+    extracted = extractBests(query, data, limit=limit, score_cutoff=score_cutoff)
     return [(candidates[idx], score) for _, score, idx in extracted]
 
 
@@ -67,7 +64,9 @@ def best_candidates(
     result = deduplicate_candidates(
         (
             candidate.model_copy(update={"score": score})
-            for candidate, score in best_matches(candidates, query, extractor, limit, score_cutoff)
+            for candidate, score in best_matches(
+                candidates, query, extractor, limit, score_cutoff
+            )
         ),
         ignore_notes=True,
     )
@@ -118,10 +117,11 @@ def merge_transactions(
                 )
             )
         else:
+            fake_id = f"fake:{idx}:{md5(st.model_dump_json().encode()).hexdigest()}"
             result.append(
                 DisplayTransaction.model_validate(
                     {
-                        "id": f"fake:{idx}:{md5(st.model_dump_json().encode()).hexdigest()}",
+                        "id": fake_id,
                         "type": DisplayTransactionType.Withdrawal
                         if st.amount < 0
                         else DisplayTransactionType.Deposit,

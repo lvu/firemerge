@@ -1,4 +1,4 @@
-from typing import AsyncIterable, Callable, Coroutine, TypeVar, ParamSpec, Any
+from typing import Any, AsyncIterable, Callable, Coroutine, ParamSpec, TypeVar
 
 T = TypeVar("T")
 P = ParamSpec("P")

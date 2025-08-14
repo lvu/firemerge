@@ -5,8 +5,14 @@ from typing import Annotated, Optional
 
 from pydantic import BaseModel, ConfigDict, PlainSerializer
 
-
-Money = Annotated[Decimal, PlainSerializer(lambda x: str(x.quantize(Decimal("0.01"))), return_type=str, when_used="unless-none")]
+Money = Annotated[
+    Decimal,
+    PlainSerializer(
+        lambda x: str(x.quantize(Decimal("0.01"))),
+        return_type=str,
+        when_used="unless-none",
+    ),
+]
 
 
 class TransactionType(Enum):
@@ -25,7 +31,7 @@ class TransactionState(Enum):
 
 class AccountType(Enum):
     Asset = "asset"
-    Expese = "expense"
+    Expense = "expense"
     Debt = "debt"
     Revenue = "revenue"
     Cash = "cash"
@@ -122,9 +128,11 @@ class Transaction(BaseModel):
                 trans_type = DisplayTransactionType.TransferIn
                 account_id = self.source_id
             else:
-                raise ValueError(
-                    f"Transaction {self.id} is not related to account {current_account_id}"
+                err_message = (
+                    f"Transaction {self.id} is not related to account "
+                    f"{current_account_id}"
                 )
+                raise ValueError(err_message)
         elif self.type == TransactionType.Withdrawal:
             trans_type = DisplayTransactionType.Withdrawal
             account_id = self.destination_id

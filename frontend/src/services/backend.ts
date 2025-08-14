@@ -42,7 +42,7 @@ export async function getAccount(accountId: number): Promise<Account | null> {
 }
 
 export async function getAccounts(): Promise<Record<number, Account>> {
-  return (await apiFetch<Account[]>('/api/accounts'))!.reduce(
+  return (await apiFetch<Account[]>('/api/accounts/'))!.reduce(
     (acc, account) => {
       acc[account.id] = account;
       return acc;
@@ -97,7 +97,7 @@ export async function getTransactions(
   statement: StatementTransaction[],
 ): Promise<Transaction[] | null> {
   const data = await apiFetch<Transaction[]>(
-    `/api/transactions`,
+    `/api/transactions/`,
     {
       account_id: accountId.toString(),
     },
@@ -133,7 +133,7 @@ export async function searchDescriptions(
   accountId: number,
   query: string,
 ): Promise<TransactionCandidate[]> {
-  return (await apiFetch<TransactionCandidate[]>(`/api/descriptions`, {
+  return (await apiFetch<TransactionCandidate[]>(`/api/transactions/descriptions`, {
     account_id: accountId.toString(),
     query,
   }))!;
@@ -144,7 +144,7 @@ export async function updateTransaction(
   transaction: Transaction,
 ): Promise<TransactionUpdateResponse> {
   return (await apiFetch<TransactionUpdateResponse>(
-    `/api/transaction`,
+    `/api/transactions`,
     {
       account_id: account_id.toString(),
     },
