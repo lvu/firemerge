@@ -34,8 +34,6 @@ export function StatementUpload({
     isPending: isProcessing,
     error: processingError,
   } = useParseStatement((data) => {
-    console.log('data', data);
-    console.log('statement', statement);
     if (replace) {
       setStatement(data);
     } else {

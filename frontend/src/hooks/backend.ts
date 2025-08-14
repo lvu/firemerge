@@ -65,12 +65,10 @@ export interface ParseStatementParams {
 }
 
 export const useParseStatement = (onSuccess?: (data: StatementTransaction[]) => void) => {
-  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ file, accountId }: ParseStatementParams) =>
       parseStatement(file, accountId, Intl.DateTimeFormat().resolvedOptions().timeZone),
     onSuccess: (data: StatementTransaction[]) => {
-      queryClient.invalidateQueries({ queryKey: ['global', 'transactions'] });
       onSuccess?.(data);
     },
   });

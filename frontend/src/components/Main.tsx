@@ -1,22 +1,15 @@
 import { useState } from 'react';
 import { CurrentAccountChoice } from './CurrentAccount';
-import type { Account, StatementTransaction } from '../types/backend';
 import { Container } from '@mui/material';
 import TransactionList from './TransactionList';
 import { StatementUpload } from './Statement';
 import { Header } from './Header';
 import { MenuDrawer } from './Menu';
-import { useSessionState } from '../hooks/sessionState';
+import { useCurrentAccount, useStatement } from '../hooks/sessionState';
 
 export const Main = () => {
-  const [currentAccount, setCurrentAccount] = useSessionState<Account | null>(
-    'currentAccount',
-    null,
-  );
-  const [statement, setStatement] = useSessionState<StatementTransaction[] | null>(
-    'statement',
-    null,
-  );
+  const [statement, setStatement] = useStatement();
+  const [currentAccount, setCurrentAccount] = useCurrentAccount(setStatement);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
