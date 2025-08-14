@@ -6,10 +6,17 @@ import TransactionList from './TransactionList';
 import { StatementUpload } from './Statement';
 import { Header } from './Header';
 import { MenuDrawer } from './Menu';
+import { useSessionState } from '../hooks/sessionState';
 
 export const Main = () => {
-  const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
-  const [statement, setStatement] = useState<StatementTransaction[] | null>(null);
+  const [currentAccount, setCurrentAccount] = useSessionState<Account | null>(
+    'currentAccount',
+    null,
+  );
+  const [statement, setStatement] = useSessionState<StatementTransaction[] | null>(
+    'statement',
+    null,
+  );
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (

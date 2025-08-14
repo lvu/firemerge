@@ -99,13 +99,13 @@ export const TransactionDialog = ({
       <DialogContent>
         {transaction && (
           <>
-          <TransactionHeader transaction={transaction} currentAccount={currentAccount} />
-          <TransactionSubheader transaction={transaction} />
-          <TransactionForm
-            transaction={transaction}
-            setTransaction={setTransaction}
-            currentAccount={currentAccount}
-          />
+            <TransactionHeader transaction={transaction} currentAccount={currentAccount} />
+            <TransactionSubheader transaction={transaction} />
+            <TransactionForm
+              transaction={transaction}
+              setTransaction={setTransaction}
+              currentAccount={currentAccount}
+            />
           </>
         )}
       </DialogContent>
