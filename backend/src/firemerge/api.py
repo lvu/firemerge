@@ -149,7 +149,6 @@ async def store_transaction(
         destination_id = account_id
         destination_name = account.name
     elif transaction.type is DisplayTransactionType.Deposit:
-        assert transaction.account_id is not None
         tr_type = TransactionType.Deposit
         source_id = transaction.account_id
         source_name = transaction.account_name
