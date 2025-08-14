@@ -5,6 +5,8 @@ import {
   ListItemText,
   MenuList,
   Typography,
+  Switch,
+  ListItem,
 } from '@mui/material';
 import type { Account, StatementTransaction } from '../types/backend';
 import {
@@ -45,6 +47,8 @@ export const MenuDrawer = ({
   setCurrentAccount,
   statement,
   setStatement,
+  showMatched,
+  setShowMatched,
 }: {
   open: boolean;
   onClose: () => void;
@@ -52,6 +56,8 @@ export const MenuDrawer = ({
   setCurrentAccount: (account: Account | null) => void;
   statement: StatementTransaction[] | null;
   setStatement: (statement: StatementTransaction[] | null) => void;
+  showMatched: boolean;
+  setShowMatched: (showMatched: boolean) => void;
 }) => {
   const { mutate: refresh } = useRefresh();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -93,15 +99,30 @@ export const MenuDrawer = ({
           Actions
         </Typography>
         <MenuList>
-          <MenuItem
-            icon={<Refresh />}
-            text="Refresh"
-            onClick={() => {
-              refresh();
-              onClose();
-            }}
-          />
-
+          {statement !== null && (
+            <ListItem>
+              <ListItemIcon>
+                <Switch
+                  checked={showMatched}
+                  onChange={() => {
+                    setShowMatched(!showMatched);
+                    onClose();
+                  }}
+                />
+              </ListItemIcon>
+              <ListItemText primary="Show matched" />
+            </ListItem>
+          )}
+          {statement !== null && (
+            <MenuItem
+              icon={<Refresh />}
+              text="Refresh"
+              onClick={() => {
+                refresh();
+                onClose();
+              }}
+            />
+          )}
           <MenuItem
             icon={<AccountBalanceWallet />}
             text="Change account"

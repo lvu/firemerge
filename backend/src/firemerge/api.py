@@ -127,6 +127,8 @@ async def store_transaction(
     # Determine transaction type and IDs
     source_name: Optional[str]
     destination_name: Optional[str]
+    source_id: Optional[int]
+    destination_id: Optional[int]
 
     if transaction.type is DisplayTransactionType.Withdrawal:
         tr_type = TransactionType.Withdrawal

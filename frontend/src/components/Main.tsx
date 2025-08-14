@@ -11,6 +11,7 @@ export const Main = () => {
   const [statement, setStatement] = useStatement();
   const [currentAccount, setCurrentAccount] = useCurrentAccount(setStatement);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showMatched, setShowMatched] = useState(true);
 
   return (
     <>
@@ -27,6 +28,8 @@ export const Main = () => {
           setCurrentAccount={setCurrentAccount}
           statement={statement}
           setStatement={setStatement}
+          showMatched={showMatched}
+          setShowMatched={setShowMatched}
         />
         {!currentAccount && <CurrentAccountChoice setCurrentAccount={setCurrentAccount} />}
         {currentAccount && statement === null && (
@@ -38,7 +41,11 @@ export const Main = () => {
           />
         )}
         {currentAccount && statement !== null && (
-          <TransactionList currentAccount={currentAccount} statement={statement} />
+          <TransactionList
+            currentAccount={currentAccount}
+            statement={statement}
+            showMatched={showMatched}
+          />
         )}
       </Container>
     </>

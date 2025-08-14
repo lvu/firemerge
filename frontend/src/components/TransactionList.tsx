@@ -1,4 +1,4 @@
-import { Alert, Box, FormControlLabel, Stack, Switch } from '@mui/material';
+import { Alert, Box, Stack } from '@mui/material';
 import type { Account, StatementTransaction, Transaction } from '../types/backend';
 import { TransactionCard } from './TransactionCard';
 import { useState } from 'react';
@@ -8,11 +8,12 @@ import { TransactionDialog } from './TransactionDialog';
 export default function TransactionList({
   currentAccount,
   statement,
+  showMatched,
 }: {
   currentAccount: Account | null;
   statement: StatementTransaction[] | null;
+  showMatched: boolean;
 }) {
-  const [showMatched, setShowMatched] = useState(true);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const { data: transactions, error } = useTransactions(currentAccount?.id, statement ?? undefined);
 
@@ -33,10 +34,6 @@ export default function TransactionList({
         initialTransaction={currentTransaction}
         currentAccount={currentAccount!}
         onClose={() => setCurrentTransaction(null)}
-      />
-      <FormControlLabel
-        control={<Switch checked={showMatched} onChange={() => setShowMatched(!showMatched)} />}
-        label="Show matched"
       />
       <Stack
         spacing={2}
