@@ -6,7 +6,7 @@ export const useSessionState = <T>(key: string, initialValue: T): [T, (value: T)
   const [sessionState, setSessionState] = useState<T>(initialValue);
 
   useEffect(() => {
-    const storedValue = localStorage.getItem(key);
+    const storedValue = sessionStorage.getItem(key);
     if (storedValue !== null) {
       setSessionState(JSON.parse(storedValue));
     }
@@ -14,7 +14,7 @@ export const useSessionState = <T>(key: string, initialValue: T): [T, (value: T)
 
   const setValue = (value: T) => {
     setSessionState(value);
-    localStorage.setItem(key, JSON.stringify(value));
+    sessionStorage.setItem(key, JSON.stringify(value));
   };
 
   return [sessionState, setValue];
