@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile
 
 from firemerge.deps import FireflyClientDep
 from firemerge.model import AccountSettings, Category, Currency, StatementTransaction
-from firemerge.statement import StatementReader
+from firemerge.statement.parser import StatementParser
 
 from .accounts import api_router as accounts_api_router
 from .transactions import api_router as transactions_api_router
@@ -43,7 +43,7 @@ async def parse_statement(
 
         # Parse the statement
         try:
-            return StatementReader.read(content, account, settings, tz)
+            return StatementParser.parse(content, account, settings, tz)
         except Exception as e:
             logger.exception("Parse failed")
             raise HTTPException(status_code=400, detail=str(e)) from e

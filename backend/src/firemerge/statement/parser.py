@@ -1,15 +1,20 @@
-import csv
 import logging
+from abc import ABC, abstractmethod
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 from decimal import Decimal
-from io import BytesIO, TextIOWrapper
-from typing import Iterable, NamedTuple, Optional
+from io import BytesIO
+from typing import NamedTuple, Optional, cast
 from zoneinfo import ZoneInfo
 
-import pdfplumber
-from openpyxl import load_workbook
-
 from firemerge.model import Account, AccountSettings, Money, StatementTransaction
+from firemerge.statement.reader import (
+    BaseStatementReader,
+    CSVStatementReader,
+    PDFStatementReader,
+    ValueType,
+    XSLXStatementReader,
+)
 
 logger = logging.getLogger("uvicorn.error")
 
@@ -18,35 +23,53 @@ def make_notes(meta: dict[str, str]) -> Optional[str]:
     return "\n".join(f"{k}: {v}" for k, v in meta.items()) if meta else None
 
 
-class StatementReader:
+class StatementParser(ABC):
+    HEADER: list[str]
+
     def __init__(self, data: BytesIO, account: Account, tz: ZoneInfo):
         self.data = data
         self.account = account
         self.tz = tz
 
-    def _read(self) -> Iterable[StatementTransaction]:
-        raise NotImplementedError()
+    @abstractmethod
+    def _create_reader(self) -> BaseStatementReader:
+        pass
+
+    def _parse(self) -> Iterable[StatementTransaction]:
+        for page in self._create_reader().iter_pages():
+            for row in page:
+                # Allow for header to be in the middle of the page
+                if row == self.HEADER:
+                    yield from self._parse_rows(page)
+                    return
+        raise ValueError("Statement not found")
+
+    @abstractmethod
+    def _parse_rows(
+        self, rows: Iterable[Sequence[ValueType]]
+    ) -> Iterable[StatementTransaction]:
+        pass
 
     @classmethod
-    def read(
+    def parse(
         cls, data: BytesIO, account: Account, settings: AccountSettings, tz: ZoneInfo
     ) -> list[StatementTransaction]:
         errors = []
-        for reader_class in cls.__subclasses__():
+        for parser_class in cls.__subclasses__():
             data.seek(0)
             try:
                 return list(
                     t
-                    for t in reader_class(data, account, tz)._read()
+                    for t in parser_class(data, account, tz)._parse()
                     if not t.notes
                     or not any(b.lower() in t.notes.lower() for b in settings.blacklist)
                 )
             except Exception as e:
                 errors.append(e)
-        raise ExceptionGroup("Failed to read statement", errors)
+        raise ExceptionGroup("Failed to parse statement", errors)
 
 
-class AvalStatementReader(StatementReader):
+class AvalStatementParser(StatementParser):
     HEADER = [
         "Дата операції",
         "Дата обробки операції",
@@ -60,43 +83,27 @@ class AvalStatementReader(StatementReader):
     ]
 
     @staticmethod
-    def _translate(s: str) -> str:
-        return s.replace("\n", " ")
-
-    @staticmethod
     def _money(s: str) -> Money:
         return Money(s.replace(" ", "").replace(",", "."))
 
-    def _read(self) -> Iterable[StatementTransaction]:
-        found = False
-        with pdfplumber.open(self.data) as pdf:
-            for page in pdf.pages:
-                for table in page.find_tables():
-                    data = [
-                        [self._translate(c) if c else "" for c in row]
-                        for row in table.extract()
-                    ]
-                    if data[0] == self.HEADER:
-                        found = True
-                        for row in data[1:]:
-                            yield StatementTransaction(
-                                name=row[4],
-                                date=datetime.strptime(
-                                    row[0], "%d.%m.%Y %H:%M"
-                                ).replace(tzinfo=self.tz),
-                                amount=self._money(row[5]),
-                                foreign_amount=None
-                                if row[5] == row[6]
-                                else self._money(row[6]),
-                                foreign_currency_code=None
-                                if row[5] == row[6]
-                                else row[7],
-                                notes=make_notes(
-                                    {"Op Type": row[3], "Description": row[4]}
-                                ),
-                            )
-            if not found:
-                raise ValueError("Statement not found")
+    def _create_reader(self) -> BaseStatementReader:
+        return PDFStatementReader(self.data)
+
+    def _parse_rows(
+        self, rows: Iterable[Sequence[ValueType]]
+    ) -> Iterable[StatementTransaction]:
+        for row in rows:
+            row = cast(Sequence[str], row)
+            yield StatementTransaction(
+                name=row[4],
+                date=datetime.strptime(row[0], "%d.%m.%Y %H:%M").replace(
+                    tzinfo=self.tz
+                ),
+                amount=self._money(row[5]),
+                foreign_amount=None if row[5] == row[6] else self._money(row[6]),
+                foreign_currency_code=None if row[5] == row[6] else row[7],
+                notes=make_notes({"Op Type": row[3], "Description": row[4]}),
+            )
 
 
 class _ABRecord(NamedTuple):
@@ -108,7 +115,7 @@ class _ABRecord(NamedTuple):
     purpose: str
 
 
-class AvalBusinessStatementReader(StatementReader):
+class AvalBusinessStatementParser(StatementParser):
     HEADER = [
         "ЄДРПОУ",
         "МФО",
@@ -129,15 +136,16 @@ class AvalBusinessStatementReader(StatementReader):
         "Гривневе покриття",
     ]
 
-    def _read(self) -> Iterable[StatementTransaction]:
-        reader = csv.reader(TextIOWrapper(self.data, encoding="cp1251"), delimiter=";")
-        header = next(reader)
-        if header != self.HEADER:
-            print(header)
-            raise ValueError("Header mismatch")
+    def _create_reader(self) -> BaseStatementReader:
+        return CSVStatementReader(self.data, delimiter=";", encoding="cp1251")
+
+    def _parse_rows(
+        self, rows: Iterable[Sequence[ValueType]]
+    ) -> Iterable[StatementTransaction]:
         own_records = []
         other_records_map = {}
-        for row in reader:
+        for row in rows:
+            row = cast(Sequence[str], row)
             if row[13] and row[14]:
                 raise ValueError("Both debit and credit are present")
             record = _ABRecord(
@@ -188,7 +196,7 @@ class AvalBusinessStatementReader(StatementReader):
                 )
 
 
-class PrivatStatementReader(StatementReader):
+class PrivatStatementParser(StatementParser):
     HEADER = [
         "Дата",
         "Категорія",
@@ -206,33 +214,22 @@ class PrivatStatementReader(StatementReader):
     def _money(s: float | int) -> Money:
         return Money(Decimal(s).quantize(Decimal("0.01")))
 
-    def _read(self) -> Iterable[StatementTransaction]:
-        wb = load_workbook(self.data, data_only=True, read_only=True)
-        ws = wb.active
-        if ws is None:
-            raise ValueError("No active sheet")
-        seen_header = False
-        for row in ws.iter_rows():
-            values = [cell.value for cell in row]
-            if not seen_header:
-                if values == self.HEADER:
-                    seen_header = True
-                continue
-            assert isinstance(values[4], (float, int))
-            assert isinstance(values[6], (float, int))
+    def _create_reader(self) -> BaseStatementReader:
+        return XSLXStatementReader(self.data)
+
+    def _parse_rows(
+        self, rows: Iterable[Sequence[ValueType]]
+    ) -> Iterable[StatementTransaction]:
+        for row in rows:
+            assert isinstance(row[4], (float, int))
+            assert isinstance(row[6], (float, int))
             yield StatementTransaction(
-                name=str(values[3]),
-                date=datetime.strptime(str(values[0]), "%d.%m.%Y %H:%M:%S").replace(
+                name=str(row[3]),
+                date=datetime.strptime(str(row[0]), "%d.%m.%Y %H:%M:%S").replace(
                     tzinfo=self.tz
                 ),
-                amount=self._money(values[4]),
-                foreign_amount=self._money(values[6])
-                if values[4] == values[6]
-                else None,
-                foreign_currency_code=str(values[5])
-                if values[4] == values[6]
-                else None,
-                notes=make_notes(
-                    {"Category": str(values[1]), "Description": str(values[3])}
-                ),
+                amount=self._money(row[4]),
+                foreign_amount=self._money(row[6]) if row[4] == row[6] else None,
+                foreign_currency_code=str(row[5]) if row[4] == row[6] else None,
+                notes=make_notes({"Category": str(row[1]), "Description": str(row[3])}),
             )
