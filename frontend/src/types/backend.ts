@@ -16,8 +16,32 @@ export type Account = {
   current_balance?: number;
 };
 
+export type ColumnMapping = {
+  name: string;
+  role: 'date' | 'description' | 'amount' | 'foreign_amount' | 'foreign_currency' | 'category' | 'account' | 'notes' | 'ignore';
+  required: boolean;
+  format?: string; // For dates: "%d.%m.%Y %H:%M", "%Y-%m-%d", etc.
+  decimalSeparator?: string; // For amounts: ".", ","
+  thousandsSeparator?: string; // For amounts: " ", ",", ""
+  currencyColumn?: string; // For foreign amounts
+};
+
+export type ParsingSettings = {
+  fileType: 'pdf' | 'csv' | 'xlsx';
+  encoding?: string; // For CSV files: "utf-8", "cp1251", etc.
+  delimiter?: string; // For CSV files: ";", ",", "\t"
+  hasHeader: boolean;
+  skipRows?: number;
+  dateFormat: string;
+  decimalSeparator: string;
+  thousandsSeparator: string;
+  columns: ColumnMapping[];
+  blacklist: string[];
+};
+
 export type AccountSettings = {
   blacklist: string[];
+  parsingSettings?: ParsingSettings;
 };
 
 export type Category = {
