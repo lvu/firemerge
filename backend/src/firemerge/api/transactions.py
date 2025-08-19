@@ -6,16 +6,14 @@ from fastapi import APIRouter, Body, HTTPException, Query
 from firemerge.deps import FireflyClientDep
 from firemerge.firefly_client import FireflyClient
 from firemerge.merge import best_candidates, deduplicate_candidates, merge_transactions
-from firemerge.model import (
+from firemerge.model.api import (
     DisplayTransaction,
     DisplayTransactionType,
     StatementTransaction,
-    Transaction,
     TransactionCandidate,
-    TransactionState,
-    TransactionType,
     TransactionUpdateResponse,
 )
+from firemerge.model.firefly import Transaction, TransactionState, TransactionType
 from firemerge.util import async_collect
 
 api_router = APIRouter(prefix="/transactions")

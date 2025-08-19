@@ -7,7 +7,9 @@ from typing import Annotated, List, Optional
 from fastapi import APIRouter, Body, HTTPException, Query, Response
 
 from firemerge.deps import FireflyClientDep
-from firemerge.model import Account, AccountSettings, TransactionType
+from firemerge.model.api import AccountSettings
+from firemerge.model.common import Account
+from firemerge.model.firefly import TransactionType
 
 api_router = APIRouter(prefix="/accounts")
 

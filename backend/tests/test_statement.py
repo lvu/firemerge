@@ -5,7 +5,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from firemerge.model import Account, AccountType, Money, StatementTransaction
+from firemerge.model.api import StatementTransaction
+from firemerge.model.common import Account, AccountType, Money
 from firemerge.statement.parser import (
     AvalBusinessStatementParser,
     AvalStatementParser,

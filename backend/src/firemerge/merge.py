@@ -4,15 +4,15 @@ from typing import Callable, Iterable, Optional, Tuple, TypeVar
 
 from thefuzz.process import extractBests
 
-from .model import (
-    Currency,
+from .model.api import (
     DisplayTransaction,
     DisplayTransactionType,
     StatementTransaction,
-    Transaction,
     TransactionCandidate,
     TransactionState,
 )
+from .model.common import Currency
+from .model.firefly import Transaction
 
 MAX_CANDIDATES = 10
 SCORE_CUTOFF = 93

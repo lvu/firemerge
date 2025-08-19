@@ -6,7 +6,8 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Query, UploadFile
 
 from firemerge.deps import FireflyClientDep
-from firemerge.model import AccountSettings, Category, Currency, StatementTransaction
+from firemerge.model.api import AccountSettings, StatementTransaction
+from firemerge.model.common import Category, Currency
 from firemerge.statement.parser import StatementParser
 
 from .accounts import api_router as accounts_api_router

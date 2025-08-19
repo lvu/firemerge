@@ -7,7 +7,8 @@ from io import BytesIO
 from typing import NamedTuple, Optional, cast
 from zoneinfo import ZoneInfo
 
-from firemerge.model import Account, AccountSettings, Money, StatementTransaction
+from firemerge.model.api import AccountSettings, StatementTransaction
+from firemerge.model.common import Account, Money
 from firemerge.statement.reader import (
     BaseStatementReader,
     CSVStatementReader,

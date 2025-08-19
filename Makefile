@@ -5,7 +5,7 @@ run-frontend:
 	cd frontend && npm run dev
 
 mypy:
-	cd backend && uv run mypy .
+	cd backend && uv run mypy -p firemerge -p tests
 
 ruff:
 	cd backend && uv run ruff check

@@ -10,14 +10,9 @@ from aiocache import cached
 from httpx import AsyncClient, HTTPStatusError, Response
 from pydantic import BaseModel, ValidationError
 
-from firemerge.model import (
-    Account,
-    AccountSettings,
-    Category,
-    Currency,
-    Transaction,
-    TransactionState,
-)
+from firemerge.model.api import AccountSettings
+from firemerge.model.common import Account, Category, Currency
+from firemerge.model.firefly import Transaction, TransactionState
 from firemerge.util import async_collect
 
 logger = logging.getLogger("uvicorn.error")
