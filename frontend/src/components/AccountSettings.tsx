@@ -144,7 +144,7 @@ export const AccountSettingsDialog = ({
     }));
   };
 
-  const updateColumn = (index: number, field: keyof ColumnMapping, value: any) => {
+  const updateColumn = (index: number, field: keyof ColumnMapping, value: string | boolean) => {
     setParsingSettings((prev) => ({
       ...prev,
       columns: prev.columns.map((col, i) => (i === index ? { ...col, [field]: value } : col)),
@@ -200,7 +200,7 @@ export const AccountSettingsDialog = ({
                         onChange={(e) =>
                           setParsingSettings((prev) => ({
                             ...prev,
-                            fileType: e.target.value as any,
+                            fileType: e.target.value,
                           }))
                         }
                         label="File Type"
