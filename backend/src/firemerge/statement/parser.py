@@ -37,10 +37,11 @@ class StatementParser(ABC):
 
     def _parse(self) -> Iterable[StatementTransaction]:
         for page in self._create_reader().iter_pages():
-            for row in page:
+            page_iter = iter(page)
+            for row in page_iter:
                 # Allow for header to be in the middle of the page
                 if row == self.HEADER:
-                    yield from self._parse_rows(page)
+                    yield from self._parse_rows(page_iter)
                     return
         raise ValueError("Statement not found")
 
@@ -175,11 +176,11 @@ class AvalBusinessStatementParser(StatementParser):
                     name=record.purpose,
                     date=min(record.date, other_record.date),
                     amount=record.amount,
-                    foreign_amount=other_record.amount,
+                    foreign_amount=-other_record.amount,
                     foreign_currency_code=other_record.currency,
                     notes=make_notes(
                         {
-                            "Desciption 1": record.purpose,
+                            "Description 1": record.purpose,
                             "Description 2": other_record.purpose,
                             "Account": other_record.account,
                         }
@@ -229,7 +230,7 @@ class PrivatStatementParser(StatementParser):
                     tzinfo=self.tz
                 ),
                 amount=self._money(row[4]),
-                foreign_amount=self._money(row[6]) if row[4] == row[6] else None,
-                foreign_currency_code=str(row[5]) if row[4] == row[6] else None,
+                foreign_amount=None if row[4] == row[6] else self._money(row[6]),
+                foreign_currency_code=None if row[4] == row[6] else str(row[7]),
                 notes=make_notes({"Category": str(row[1]), "Description": str(row[3])}),
             )

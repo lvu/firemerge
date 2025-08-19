@@ -20,5 +20,10 @@ check-frontend:
 
 check: check-backend check-frontend
 
+test-backend:
+	cd backend && uv run pytest -vv
+
+test: test-backend
+
 build-frontend:
 	cd frontend && npm run build
