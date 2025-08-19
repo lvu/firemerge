@@ -37,8 +37,20 @@ const defaultParsingSettings: ParsingSettings = {
   columns: [
     { name: 'Дата операції', role: 'date', required: true, format: '%d.%m.%Y %H:%M' },
     { name: 'Деталі операції', role: 'description', required: true },
-    { name: 'Сума у валюті рахунку', role: 'amount', required: true, decimalSeparator: '.', thousandsSeparator: ' ' },
-    { name: 'Сума у валюті операції', role: 'foreign_amount', required: false, decimalSeparator: '.', thousandsSeparator: ' ' },
+    {
+      name: 'Сума у валюті рахунку',
+      role: 'amount',
+      required: true,
+      decimalSeparator: '.',
+      thousandsSeparator: ' ',
+    },
+    {
+      name: 'Сума у валюті операції',
+      role: 'foreign_amount',
+      required: false,
+      decimalSeparator: '.',
+      thousandsSeparator: ' ',
+    },
     { name: 'Валюта операції', role: 'foreign_currency', required: false },
   ],
   blacklist: [],
@@ -126,25 +138,23 @@ export const AccountSettingsDialog = ({
   };
 
   const addColumn = () => {
-    setParsingSettings(prev => ({
+    setParsingSettings((prev) => ({
       ...prev,
-      columns: [...prev.columns, { name: '', role: 'ignore', required: false }]
+      columns: [...prev.columns, { name: '', role: 'ignore', required: false }],
     }));
   };
 
   const updateColumn = (index: number, field: keyof ColumnMapping, value: any) => {
-    setParsingSettings(prev => ({
+    setParsingSettings((prev) => ({
       ...prev,
-      columns: prev.columns.map((col, i) =>
-        i === index ? { ...col, [field]: value } : col
-      )
+      columns: prev.columns.map((col, i) => (i === index ? { ...col, [field]: value } : col)),
     }));
   };
 
   const removeColumn = (index: number) => {
-    setParsingSettings(prev => ({
+    setParsingSettings((prev) => ({
       ...prev,
-      columns: prev.columns.filter((_, i) => i !== index)
+      columns: prev.columns.filter((_, i) => i !== index),
     }));
   };
 
@@ -170,21 +180,35 @@ export const AccountSettingsDialog = ({
               </AccordionSummary>
               <AccordionDetails>
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  Configure how to parse bank statements for this account. This replaces the hardcoded parsers with flexible settings.
+                  Configure how to parse bank statements for this account. This replaces the
+                  hardcoded parsers with flexible settings.
                 </Alert>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                    gap: 3,
+                  }}
+                >
                   {/* File Type and Basic Settings */}
                   <Box>
                     <FormControl fullWidth>
                       <InputLabel>File Type</InputLabel>
                       <Select
                         value={parsingSettings.fileType}
-                        onChange={(e) => setParsingSettings(prev => ({ ...prev, fileType: e.target.value as any }))}
+                        onChange={(e) =>
+                          setParsingSettings((prev) => ({
+                            ...prev,
+                            fileType: e.target.value as any,
+                          }))
+                        }
                         label="File Type"
                       >
-                        {fileTypes.map(type => (
-                          <MenuItem key={type.value} value={type.value}>{type.label}</MenuItem>
+                        {fileTypes.map((type) => (
+                          <MenuItem key={type.value} value={type.value}>
+                            {type.label}
+                          </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -195,7 +219,9 @@ export const AccountSettingsDialog = ({
                       control={
                         <Switch
                           checked={parsingSettings.hasHeader}
-                          onChange={(e) => setParsingSettings(prev => ({ ...prev, hasHeader: e.target.checked }))}
+                          onChange={(e) =>
+                            setParsingSettings((prev) => ({ ...prev, hasHeader: e.target.checked }))
+                          }
                         />
                       }
                       label="File has header row"
@@ -210,11 +236,15 @@ export const AccountSettingsDialog = ({
                           <InputLabel>Encoding</InputLabel>
                           <Select
                             value={parsingSettings.encoding || 'utf-8'}
-                            onChange={(e) => setParsingSettings(prev => ({ ...prev, encoding: e.target.value }))}
+                            onChange={(e) =>
+                              setParsingSettings((prev) => ({ ...prev, encoding: e.target.value }))
+                            }
                             label="Encoding"
                           >
-                            {encodings.map(enc => (
-                              <MenuItem key={enc.value} value={enc.value}>{enc.label}</MenuItem>
+                            {encodings.map((enc) => (
+                              <MenuItem key={enc.value} value={enc.value}>
+                                {enc.label}
+                              </MenuItem>
                             ))}
                           </Select>
                         </FormControl>
@@ -225,11 +255,15 @@ export const AccountSettingsDialog = ({
                           <InputLabel>Delimiter</InputLabel>
                           <Select
                             value={parsingSettings.delimiter || ';'}
-                            onChange={(e) => setParsingSettings(prev => ({ ...prev, delimiter: e.target.value }))}
+                            onChange={(e) =>
+                              setParsingSettings((prev) => ({ ...prev, delimiter: e.target.value }))
+                            }
                             label="Delimiter"
                           >
-                            {delimiters.map(del => (
-                              <MenuItem key={del.value} value={del.value}>{del.label}</MenuItem>
+                            {delimiters.map((del) => (
+                              <MenuItem key={del.value} value={del.value}>
+                                {del.label}
+                              </MenuItem>
                             ))}
                           </Select>
                         </FormControl>
@@ -243,11 +277,15 @@ export const AccountSettingsDialog = ({
                       <InputLabel>Date Format</InputLabel>
                       <Select
                         value={parsingSettings.dateFormat}
-                        onChange={(e) => setParsingSettings(prev => ({ ...prev, dateFormat: e.target.value }))}
+                        onChange={(e) =>
+                          setParsingSettings((prev) => ({ ...prev, dateFormat: e.target.value }))
+                        }
                         label="Date Format"
                       >
-                        {dateFormats.map(format => (
-                          <MenuItem key={format.value} value={format.value}>{format.label}</MenuItem>
+                        {dateFormats.map((format) => (
+                          <MenuItem key={format.value} value={format.value}>
+                            {format.label}
+                          </MenuItem>
                         ))}
                       </Select>
                     </FormControl>
@@ -259,7 +297,12 @@ export const AccountSettingsDialog = ({
                       label="Skip Rows"
                       type="number"
                       value={parsingSettings.skipRows || 0}
-                      onChange={(e) => setParsingSettings(prev => ({ ...prev, skipRows: parseInt(e.target.value) || 0 }))}
+                      onChange={(e) =>
+                        setParsingSettings((prev) => ({
+                          ...prev,
+                          skipRows: parseInt(e.target.value) || 0,
+                        }))
+                      }
                       helperText="Number of rows to skip before data"
                     />
                   </Box>
@@ -269,7 +312,12 @@ export const AccountSettingsDialog = ({
                       fullWidth
                       label="Decimal Separator"
                       value={parsingSettings.decimalSeparator}
-                      onChange={(e) => setParsingSettings(prev => ({ ...prev, decimalSeparator: e.target.value }))}
+                      onChange={(e) =>
+                        setParsingSettings((prev) => ({
+                          ...prev,
+                          decimalSeparator: e.target.value,
+                        }))
+                      }
                       helperText="e.g., . or ,"
                     />
                   </Box>
@@ -279,7 +327,12 @@ export const AccountSettingsDialog = ({
                       fullWidth
                       label="Thousands Separator"
                       value={parsingSettings.thousandsSeparator}
-                      onChange={(e) => setParsingSettings(prev => ({ ...prev, thousandsSeparator: e.target.value }))}
+                      onChange={(e) =>
+                        setParsingSettings((prev) => ({
+                          ...prev,
+                          thousandsSeparator: e.target.value,
+                        }))
+                      }
                       helperText="e.g., space or comma"
                     />
                   </Box>
@@ -297,8 +350,24 @@ export const AccountSettingsDialog = ({
                   </Box>
 
                   {parsingSettings.columns.map((column, index) => (
-                    <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2, alignItems: 'center' }}>
+                    <Box
+                      key={index}
+                      sx={{
+                        mb: 2,
+                        p: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: 'grid',
+                          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' },
+                          gap: 2,
+                          alignItems: 'center',
+                        }}
+                      >
                         <Box>
                           <TextField
                             fullWidth
@@ -317,8 +386,10 @@ export const AccountSettingsDialog = ({
                               onChange={(e) => updateColumn(index, 'role', e.target.value)}
                               label="Role"
                             >
-                              {columnRoles.map(role => (
-                                <MenuItem key={role.value} value={role.value}>{role.label}</MenuItem>
+                              {columnRoles.map((role) => (
+                                <MenuItem key={role.value} value={role.value}>
+                                  {role.label}
+                                </MenuItem>
                               ))}
                             </Select>
                           </FormControl>
@@ -357,8 +428,10 @@ export const AccountSettingsDialog = ({
                                 onChange={(e) => updateColumn(index, 'format', e.target.value)}
                                 label="Date Format"
                               >
-                                {dateFormats.map(format => (
-                                  <MenuItem key={format.value} value={format.value}>{format.label}</MenuItem>
+                                {dateFormats.map((format) => (
+                                  <MenuItem key={format.value} value={format.value}>
+                                    {format.label}
+                                  </MenuItem>
                                 ))}
                               </Select>
                             </FormControl>
@@ -372,15 +445,21 @@ export const AccountSettingsDialog = ({
                                 fullWidth
                                 label="Decimal Separator"
                                 value={column.decimalSeparator || parsingSettings.decimalSeparator}
-                                onChange={(e) => updateColumn(index, 'decimalSeparator', e.target.value)}
+                                onChange={(e) =>
+                                  updateColumn(index, 'decimalSeparator', e.target.value)
+                                }
                               />
                             </Box>
                             <Box>
                               <TextField
                                 fullWidth
                                 label="Thousands Separator"
-                                value={column.thousandsSeparator || parsingSettings.thousandsSeparator}
-                                onChange={(e) => updateColumn(index, 'thousandsSeparator', e.target.value)}
+                                value={
+                                  column.thousandsSeparator || parsingSettings.thousandsSeparator
+                                }
+                                onChange={(e) =>
+                                  updateColumn(index, 'thousandsSeparator', e.target.value)
+                                }
                               />
                             </Box>
                           </>

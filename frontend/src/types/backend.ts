@@ -18,7 +18,16 @@ export type Account = {
 
 export type ColumnMapping = {
   name: string;
-  role: 'date' | 'description' | 'amount' | 'foreign_amount' | 'foreign_currency' | 'category' | 'account' | 'notes' | 'ignore';
+  role:
+    | 'date'
+    | 'description'
+    | 'amount'
+    | 'foreign_amount'
+    | 'foreign_currency'
+    | 'category'
+    | 'account'
+    | 'notes'
+    | 'ignore';
   required: boolean;
   format?: string; // For dates: "%d.%m.%Y %H:%M", "%Y-%m-%d", etc.
   decimalSeparator?: string; // For amounts: ".", ","
