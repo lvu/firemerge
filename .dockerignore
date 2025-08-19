@@ -5,6 +5,8 @@
 # Python
 **/__pycache__/
 **/*.egg-info/
+**/.mypy_cache/
+**/.ruff_cache/
 
 # Virtual environments
 **/venv/
