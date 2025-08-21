@@ -144,12 +144,12 @@ export async function updateTransaction(
   transaction: Transaction,
 ): Promise<TransactionUpdateResponse> {
   return (await apiFetch<TransactionUpdateResponse>(
-    `/api/transactions`,
+    `/api/transactions/`,
     {
       account_id: account_id.toString(),
     },
     {
-      method: 'POST',
+      method: 'PUT',
       body: JSON.stringify(transaction),
       headers: {
         'Content-Type': 'application/json',

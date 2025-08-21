@@ -37,7 +37,7 @@ async def get_transactions(
     )
 
 
-@api_router.post("/")
+@api_router.put("/")
 async def store_transaction(
     account_id: Annotated[int, Query(...)],
     transaction: Annotated[DisplayTransaction, Body(...)],
