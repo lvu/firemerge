@@ -116,8 +116,6 @@ async def store_transaction(
 
     new_transaction = await firefly_client.store_transaction(new_transaction)
 
-    firefly_client.clear_transactions_cache()
-
     response = TransactionUpdateResponse(
         transaction=new_transaction.as_display_transaction(account_id).model_copy(
             update={"state": TransactionState.Matched}

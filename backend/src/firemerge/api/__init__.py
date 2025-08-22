@@ -72,8 +72,3 @@ async def get_categories(firefly_client: FireflyClientDep) -> List[Category]:
 @api_router.get("/currencies")
 async def get_currencies(firefly_client: FireflyClientDep) -> List[Currency]:
     return await firefly_client.get_currencies()
-
-
-@api_router.post("/clear_cache")
-async def clear_cache(firefly_client: FireflyClientDep) -> None:
-    await firefly_client.clear_cache()

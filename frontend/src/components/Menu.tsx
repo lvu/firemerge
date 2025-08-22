@@ -59,7 +59,7 @@ export const MenuDrawer = ({
   showMatched: boolean;
   setShowMatched: (showMatched: boolean) => void;
 }) => {
-  const { mutate: refresh } = useRefresh();
+  const { refresh } = useRefresh();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [statementExportDialogOpen, setStatementExportDialogOpen] = useState(false);
   const [accountSettingsDialogOpen, setAccountSettingsDialogOpen] = useState(false);

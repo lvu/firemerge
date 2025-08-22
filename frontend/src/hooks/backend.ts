@@ -5,7 +5,6 @@ import {
   getCurrencies,
   getTransactions,
   updateTransaction,
-  clearCache,
   getAccount,
   parseStatement,
   getAccountSettings,
@@ -128,13 +127,12 @@ export const useCurrencies = () => {
 
 export const useRefresh = () => {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: clearCache,
-    onSuccess: () => {
+  return {
+    refresh: () => {
       queryClient.invalidateQueries({ queryKey: ['global'] });
       queryClient.invalidateQueries({ queryKey: ['account_details'] });
     },
-  });
+  };
 };
 
 export const useAccountDetails = (accountId?: number) => {

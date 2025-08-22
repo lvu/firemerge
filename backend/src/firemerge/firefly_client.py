@@ -6,7 +6,6 @@ from time import monotonic
 from typing import AsyncIterable, Optional, Self
 from uuid import uuid4
 
-from aiocache import cached
 from httpx import AsyncClient, HTTPStatusError, Response
 from pydantic import BaseModel, ValidationError
 
@@ -18,8 +17,6 @@ from firemerge.util import async_collect
 logger = logging.getLogger("uvicorn.error")
 
 TIMEOUT = 300
-CACHE_TTL = 600
-PAGE_SIZE = 1000
 MAX_ACCOUNTS = 10000
 SETTINGS_ATTACHMENT_NAME = "firemerge-settings.json"
 
@@ -35,12 +32,6 @@ class FireflyClient:
         self.base_url = base_url.rstrip("/")
         self.token = token
         self._client = http_client
-        self.get_accounts = cached(ttl=CACHE_TTL)(self.get_accounts)  # type: ignore
-        self.get_categories = cached(ttl=CACHE_TTL)(self.get_categories)  # type: ignore
-        self.get_currencies = cached(ttl=CACHE_TTL)(self.get_currencies)  # type: ignore
-        self.get_transactions = cached(ttl=CACHE_TTL)(  # type: ignore
-            self.get_transactions
-        )
         self.account_type_map: dict[str, Optional[str]] = {}
 
     @classmethod
@@ -53,18 +44,6 @@ class FireflyClient:
                 "be set in environment or .env file"
             )
         return cls(http_client, base_url, token)
-
-    def clear_transactions_cache(self) -> None:
-        self.get_transactions.cache.clear()  # type: ignore
-
-    def clear_accounts_cache(self) -> None:
-        self.get_accounts.cache.clear()  # type: ignore
-
-    async def clear_cache(self) -> None:
-        await self.get_accounts.cache.clear()  # type: ignore
-        await self.get_categories.cache.clear()  # type: ignore
-        await self.get_currencies.cache.clear()  # type: ignore
-        await self.get_transactions.cache.clear()  # type: ignore
 
     async def _request(
         self,
