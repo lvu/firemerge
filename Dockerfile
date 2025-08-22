@@ -19,7 +19,6 @@ WORKDIR /app/backend
 
 COPY backend/pyproject.toml ./
 COPY backend/uv.lock ./
-COPY backend/src/firemerge/__init__.py ./src/firemerge/__init__.py
 
 RUN uv sync --frozen --no-cache --no-dev
 

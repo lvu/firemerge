@@ -6,12 +6,9 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from firemerge.model.api import StatementTransaction
-from firemerge.model.common import Account, AccountType, Money
-from firemerge.statement.parser import (
-    AvalBusinessStatementParser,
-    AvalStatementParser,
-    PrivatStatementParser,
-)
+from firemerge.model.common import Account, AccountType, Currency, Money
+from firemerge.statement.config_repo import load_config
+from firemerge.statement.parser import NewStatementParser
 from firemerge.statement.reader import BaseStatementReader, ValueType
 
 
@@ -56,11 +53,31 @@ def account_secondary(iban_secondary):
 
 
 @pytest.fixture
+def currency_usd():
+    return Currency(
+        id=1,
+        code="USD",
+        name="US Dollar",
+        symbol="$",
+    )
+
+
+@pytest.fixture
+def currency_eur():
+    return Currency(
+        id=2,
+        code="EUR",
+        name="Euro",
+        symbol="€",
+    )
+
+
+@pytest.fixture
 def utc():
     return ZoneInfo("UTC")
 
 
-def test_statement_aval(account_primary, utc):
+def test_statement_aval(account_primary, utc, currency_usd):
     reader = MockReader(
         data=[
             [
@@ -98,8 +115,9 @@ def test_statement_aval(account_primary, utc):
             ],
         ]
     )
-    with patch.object(AvalStatementParser, "_create_reader", return_value=reader):
-        parser = AvalStatementParser(None, account_primary, utc)
+    aval_settings = load_config("aval_online.yaml")
+    parser = NewStatementParser(None, account_primary, utc, aval_settings, currency_usd)
+    with patch.object(parser, "_create_reader", return_value=reader):
         transactions = list(parser._parse())
 
     assert transactions == [
@@ -191,7 +209,7 @@ def aval_reader(iban_primary, iban_secondary):
                 iban_primary,
                 "USD",
                 "19.08.2025 09:00",
-                "100",
+                "doc100",
                 "",
                 "456.00",
                 "Currency sold",
@@ -201,7 +219,7 @@ def aval_reader(iban_primary, iban_secondary):
                 iban_secondary,
                 "EUR",
                 "19.08.2025 08:00",
-                "100",
+                "doc100",
                 "345.00",
                 "",
                 "Selling currency",
@@ -210,11 +228,12 @@ def aval_reader(iban_primary, iban_secondary):
     )
 
 
-def test_statement_aval_business_primary(account_primary, utc, aval_reader):
-    with patch.object(
-        AvalBusinessStatementParser, "_create_reader", return_value=aval_reader
-    ):
-        parser = AvalBusinessStatementParser(None, account_primary, utc)
+def test_statement_aval_business_primary(
+    account_primary, utc, aval_reader, currency_usd, iban_primary, iban_secondary
+):
+    aval_settings = load_config("aval_business.yaml")
+    parser = NewStatementParser(None, account_primary, utc, aval_settings, currency_usd)
+    with patch.object(parser, "_create_reader", return_value=aval_reader):
         transactions = sorted(parser._parse(), key=lambda x: x.date, reverse=True)
 
     assert transactions == [
@@ -224,7 +243,7 @@ def test_statement_aval_business_primary(account_primary, utc, aval_reader):
             amount=Money("-123.00"),
             foreign_amount=None,
             foreign_currency_code=None,
-            notes="Description: 101;Tax payment",
+            notes=f"IBAN: {iban_primary}\nDescription: 101;Tax payment",
         ),
         StatementTransaction(
             name="Currency sold",
@@ -234,20 +253,24 @@ def test_statement_aval_business_primary(account_primary, utc, aval_reader):
             foreign_currency_code="EUR",
             notes="\n".join(
                 [
-                    "Description 1: Currency sold",
-                    "Description 2: Selling currency",
-                    "Account: US543210987654321098765432109876",
+                    f"IBAN [D]: {iban_secondary}",
+                    "Description [D]: Selling currency",
+                    f"IBAN [C]: {iban_primary}",
+                    "Description [C]: Currency sold",
                 ]
             ),
         ),
     ]
 
 
-def test_statement_aval_business_secondary(account_secondary, utc, aval_reader):
-    with patch.object(
-        AvalBusinessStatementParser, "_create_reader", return_value=aval_reader
-    ):
-        parser = AvalBusinessStatementParser(None, account_secondary, utc)
+def test_statement_aval_business_secondary(
+    account_secondary, utc, aval_reader, currency_eur, iban_primary, iban_secondary
+):
+    aval_settings = load_config("aval_business.yaml")
+    parser = NewStatementParser(
+        None, account_secondary, utc, aval_settings, currency_eur
+    )
+    with patch.object(parser, "_create_reader", return_value=aval_reader):
         transactions = sorted(parser._parse(), key=lambda x: x.date, reverse=True)
 
     assert transactions == [
@@ -257,7 +280,7 @@ def test_statement_aval_business_secondary(account_secondary, utc, aval_reader):
             amount=Money("234.00"),
             foreign_amount=None,
             foreign_currency_code=None,
-            notes="Description: FROM: ACME INC.",
+            notes=f"IBAN: {iban_secondary}\nDescription: FROM: ACME INC.",
         ),
         StatementTransaction(
             name="Selling currency",
@@ -267,16 +290,17 @@ def test_statement_aval_business_secondary(account_secondary, utc, aval_reader):
             foreign_currency_code="USD",
             notes="\n".join(
                 [
-                    "Description 1: Selling currency",
-                    "Description 2: Currency sold",
-                    "Account: US123456789012345678901234567890",
+                    f"IBAN [D]: {iban_secondary}",
+                    "Description [D]: Selling currency",
+                    f"IBAN [C]: {iban_primary}",
+                    "Description [C]: Currency sold",
                 ]
             ),
         ),
     ]
 
 
-def test_statement_privat(account_primary, utc):
+def test_statement_privat(account_primary, utc, currency_usd):
     reader = MockReader(
         data=[
             [
@@ -317,8 +341,11 @@ def test_statement_privat(account_primary, utc):
             ],
         ]
     )
-    with patch.object(PrivatStatementParser, "_create_reader", return_value=reader):
-        parser = PrivatStatementParser(None, account_primary, utc)
+    privat_settings = load_config("privat24.yaml")
+    parser = NewStatementParser(
+        None, account_primary, utc, privat_settings, currency_usd
+    )
+    with patch.object(parser, "_create_reader", return_value=reader):
         transactions = list(parser._parse())
 
     assert transactions == [

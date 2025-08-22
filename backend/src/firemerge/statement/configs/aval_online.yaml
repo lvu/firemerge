@@ -1,0 +1,23 @@
+label: "Raiffeisen Aval Online"
+parser_settings:
+  format:
+    format: pdf
+  date_format: "%d.%m.%Y %H:%M"
+  decimal_separator: ","
+  columns:
+    - name: "Дата операції"
+      role: date
+    - name: "Дата обробки операції"
+    - name: "Номер картки"
+    - name: "Тип операції"
+      notes_label: "Op Type"
+    - name: "Деталі операції"
+      role: name
+      notes_label: "Description"
+    - name: "Сума у валюті рахунку"
+      role: amount
+    - name: "Сума у валюті операції"
+      role: foreign_amount
+    - name: "Валюта операції"
+      role: foreign_currency_code
+    - name: "Вихідний залишок (у валюті рахунку)"

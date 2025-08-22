@@ -6,7 +6,8 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter, HTTPException, Query, UploadFile
 
 from firemerge.deps import FireflyClientDep
-from firemerge.model.api import AccountSettings, StatementTransaction
+from firemerge.model.account_settings import AccountSettings
+from firemerge.model.api import StatementTransaction
 from firemerge.model.common import Category, Currency
 from firemerge.statement.parser import StatementParser
 
@@ -33,6 +34,11 @@ async def parse_statement(
         content = BytesIO(await file.read())
         account = await firefly_client.get_account(account_id)
         settings = await firefly_client.get_account_settings(account_id)
+        primary_currency = next(
+            c
+            for c in await firefly_client.get_currencies()
+            if c.id == account.currency_id
+        )
         if settings is None:
             settings = AccountSettings()
 
@@ -44,7 +50,9 @@ async def parse_statement(
 
         # Parse the statement
         try:
-            return StatementParser.parse(content, account, settings, tz)
+            return StatementParser.parse(
+                content, account, settings, tz, primary_currency
+            )
         except Exception as e:
             logger.exception("Parse failed")
             raise HTTPException(status_code=400, detail=str(e)) from e

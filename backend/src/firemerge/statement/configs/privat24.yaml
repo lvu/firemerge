@@ -1,0 +1,24 @@
+label: "Privat24"
+parser_settings:
+  format:
+    format: xlsx
+  date_format: "%d.%m.%Y %H:%M:%S"
+  columns:
+    - name: "Дата"
+      role: date
+    - name: "Категорія"
+      notes_label: "Category"
+    - name: "Картка"
+    - name: "Опис операції"
+      role: name
+      notes_label: "Description"
+    - name: "Сума в валюті картки"
+      role: amount
+    - name: "Валюта картки"
+      role: currency_code
+    - name: "Сума в валюті транзакції"
+      role: foreign_amount
+    - name: "Валюта транзакції"
+      role: foreign_currency_code
+    - name: "Залишок на кінець періоду"
+    - name: "Валюта залишку"

@@ -1,14 +1,23 @@
 import logging
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Iterable, Sequence
-from datetime import datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from io import BytesIO
-from typing import NamedTuple, Optional, cast
+from math import copysign
 from zoneinfo import ZoneInfo
 
-from firemerge.model.api import AccountSettings, StatementTransaction
-from firemerge.model.common import Account, Money
+from firemerge.model.account_settings import (
+    AccountSettings,
+    ColumnRole,
+    StatementFormatSettingsCSV,
+    StatementFormatSettingsPDF,
+    StatementFormatSettingsXLSX,
+    StatementParserSettings,
+)
+from firemerge.model.api import StatementTransaction
+from firemerge.model.common import Account, Currency, Money
+from firemerge.statement.config_repo import load_config
 from firemerge.statement.reader import (
     BaseStatementReader,
     CSVStatementReader,
@@ -20,218 +29,226 @@ from firemerge.statement.reader import (
 logger = logging.getLogger("uvicorn.error")
 
 
-def make_notes(meta: dict[str, str]) -> Optional[str]:
-    return "\n".join(f"{k}: {v}" for k, v in meta.items()) if meta else None
-
-
-class StatementParser(ABC):
-    HEADER: list[str]
-
-    def __init__(self, data: BytesIO, account: Account, tz: ZoneInfo):
+class NewStatementParser:
+    def __init__(
+        self,
+        data: BytesIO,
+        account: Account,
+        tz: ZoneInfo,
+        settings: AccountSettings,
+        primary_currency: Currency,
+    ):
         self.data = data
         self.account = account
         self.tz = tz
+        self.settings = settings
+        self.primary_currency = primary_currency
 
-    @abstractmethod
+        if self.settings.parser_settings is None:
+            raise ValueError("Parser settings are required to parse statement")
+
+        self.parser_settings: StatementParserSettings = self.settings.parser_settings
+
+        self.header = [c.name for c in self.settings.parser_settings.columns]
+        self.role_cols = {
+            c.role: c for c in self.settings.parser_settings.columns if c.role
+        }
+
     def _create_reader(self) -> BaseStatementReader:
-        pass
+        if isinstance(self.parser_settings.format, StatementFormatSettingsCSV):
+            return CSVStatementReader(
+                self.data,
+                delimiter=self.parser_settings.format.separator,
+                encoding=self.parser_settings.format.encoding,
+            )
+        elif isinstance(self.parser_settings.format, StatementFormatSettingsXLSX):
+            return XSLXStatementReader(self.data)
+        elif isinstance(self.parser_settings.format, StatementFormatSettingsPDF):
+            return PDFStatementReader(self.data)
+        else:
+            raise ValueError("Invalid format")
 
-    def _parse(self) -> Iterable[StatementTransaction]:
+    def _iter_rows(self) -> Iterable[Sequence[ValueType]]:
+        found = False
         for page in self._create_reader().iter_pages():
             page_iter = iter(page)
             for row in page_iter:
                 # Allow for header to be in the middle of the page
-                if row == self.HEADER:
-                    yield from self._parse_rows(page_iter)
-                    return
-        raise ValueError("Statement not found")
+                if row == self.header:
+                    yield from page_iter
+                    found = True
+                    break
+        if not found:
+            raise ValueError("Statement not found")
 
-    @abstractmethod
+    def _parse(self) -> Iterable[StatementTransaction]:
+        for transaction in self._parse_rows(self._iter_rows()):
+            if transaction.notes and any(
+                b.lower() in transaction.notes.lower() for b in self.settings.blacklist
+            ):
+                continue
+            if not transaction.amount:
+                continue
+            yield transaction
+
+    def _parse_date(self, value: ValueType) -> datetime:
+        if isinstance(value, datetime):
+            result = value
+        elif isinstance(value, date):
+            result = datetime.combine(value, time.min)
+        if isinstance(value, str):
+            result = datetime.strptime(value, self.parser_settings.date_format)
+        else:
+            raise ValueError(f"Invalid date: {value}")
+        if result.tzinfo is None:
+            result = result.replace(tzinfo=self.tz)
+        return result
+
+    def _parse_amount(self, value: ValueType) -> Money:
+        if isinstance(value, int | float | Decimal):
+            return Money(Decimal(value).quantize(Decimal("0.01")))
+        if isinstance(value, str):
+            if self.parser_settings.decimal_separator:
+                value = value.replace(self.parser_settings.decimal_separator, ".")
+            return Money(value.replace(" ", ""))
+        raise ValueError(f"Invalid amount: {value}")
+
     def _parse_rows(
         self, rows: Iterable[Sequence[ValueType]]
     ) -> Iterable[StatementTransaction]:
-        pass
+        iban_col = self.role_cols.get(ColumnRole.IBAN)
+        # prepare rows for join if doc number is present
+        if join_col := self.role_cols.get(ColumnRole.DOC_NUMBER):
+            assert iban_col is not None
+            rows = list(rows)
+            join_rows = {
+                row[join_col.index]: row
+                for row in rows
+                if row[join_col.index] and row[iban_col.index] != self.account.iban
+            }
+        else:
+            join_rows = None
 
+        for row in rows:
+            if iban_col and row[iban_col.index] != self.account.iban:
+                continue
+
+            if (
+                join_col
+                and join_rows is not None
+                and (doc_number := row[join_col.index])
+                and (join_row := join_rows.get(doc_number))
+            ):
+                yield self._parse_row(row, join_row)
+            else:
+                yield self._parse_row(row)
+
+    def _get_amount(self, row: Sequence[ValueType]) -> Money:
+        if amount_col := self.role_cols.get(ColumnRole.AMOUNT):
+            return self._parse_amount(row[amount_col.index])
+
+        debit = row[self.role_cols[ColumnRole.AMOUNT_DEBIT].index]
+        credit = row[self.role_cols[ColumnRole.AMOUNT_CREDIT].index]
+        if debit and credit:
+            raise ValueError("Both debit and credit are present")
+        if debit:
+            return -self._parse_amount(debit)
+        return self._parse_amount(credit)
+
+    def _get_notes(self, row: Sequence[ValueType], suffix: str = "") -> list[str]:
+        return [
+            f"{col.notes_label}{suffix}: {value}"
+            for col in self.parser_settings.columns
+            if col.notes_label and (value := row[col.index])
+        ]
+
+    def _parse_row(
+        self, row: Sequence[ValueType], join_row: Sequence[ValueType] | None = None
+    ) -> StatementTransaction:
+        amount = self._get_amount(row)
+        foreign_amount = None
+        foreign_currency_code = None
+        transaction_date = self._parse_date(row[self.role_cols[ColumnRole.DATE].index])
+        if join_row:
+            join_amount = self._get_amount(join_row)
+            if amount * join_amount >= 0:
+                raise ValueError("Same direction")
+            debit_row, credit_row = (row, join_row) if amount < 0 else (join_row, row)
+            notes = self._get_notes(debit_row, " [D]") + self._get_notes(
+                credit_row, " [C]"
+            )
+            transaction_date = min(
+                transaction_date,
+                self._parse_date(join_row[self.role_cols[ColumnRole.DATE].index]),
+            )
+            if currency_col := self.role_cols.get(ColumnRole.CURRENCY_CODE):
+                if (
+                    currency_code := join_row[currency_col.index]
+                ) != self.primary_currency.code:
+                    foreign_amount = join_amount * -1
+                    foreign_currency_code = currency_code
+        else:
+            notes = self._get_notes(row)
+
+        if foreign_amount is None and (
+            foreign_currency_col := self.role_cols.get(ColumnRole.FOREIGN_CURRENCY_CODE)
+        ):
+            if (
+                fc_code := row[foreign_currency_col.index]
+            ) != self.primary_currency.code:
+                foreign_amount = self._parse_amount(
+                    row[self.role_cols[ColumnRole.FOREIGN_AMOUNT].index]
+                )
+                foreign_currency_code = fc_code
+
+        return StatementTransaction(
+            name=row[self.role_cols[ColumnRole.NAME].index],
+            date=transaction_date,
+            amount=amount,
+            foreign_amount=foreign_amount and copysign(foreign_amount, amount),
+            foreign_currency_code=foreign_currency_code,
+            notes="\n".join(notes) if notes else None,
+        )
+
+
+class StatementParser(ABC):
     @classmethod
     def parse(
-        cls, data: BytesIO, account: Account, settings: AccountSettings, tz: ZoneInfo
+        cls,
+        data: BytesIO,
+        account: Account,
+        settings: AccountSettings,
+        tz: ZoneInfo,
+        primary_currency: Currency,
     ) -> list[StatementTransaction]:
         errors = []
-        for parser_class in cls.__subclasses__():
+        for parser_class in ConcreteStatementParser.__subclasses__():
             data.seek(0)
             try:
-                return list(
-                    t
-                    for t in parser_class(data, account, tz)._parse()
-                    if not t.notes
-                    or not any(b.lower() in t.notes.lower() for b in settings.blacklist)
-                )
+                return list(parser_class(data, account, tz, primary_currency)._parse())
             except Exception as e:
                 errors.append(e)
         raise ExceptionGroup("Failed to parse statement", errors)
 
 
-class AvalStatementParser(StatementParser):
-    HEADER = [
-        "Дата операції",
-        "Дата обробки операції",
-        "Номер картки",
-        "Тип операції",
-        "Деталі операції",
-        "Сума у валюті рахунку",
-        "Сума у валюті операції",
-        "Валюта операції",
-        "Вихідний залишок (у валюті рахунку)",
-    ]
+class ConcreteStatementParser(NewStatementParser):
+    config_name: str
 
-    @staticmethod
-    def _money(s: str) -> Money:
-        return Money(s.replace(" ", "").replace(",", "."))
-
-    def _create_reader(self) -> BaseStatementReader:
-        return PDFStatementReader(self.data)
-
-    def _parse_rows(
-        self, rows: Iterable[Sequence[ValueType]]
-    ) -> Iterable[StatementTransaction]:
-        for row in rows:
-            row = cast(Sequence[str], row)
-            yield StatementTransaction(
-                name=row[4],
-                date=datetime.strptime(row[0], "%d.%m.%Y %H:%M").replace(
-                    tzinfo=self.tz
-                ),
-                amount=self._money(row[5]),
-                foreign_amount=None if row[5] == row[6] else self._money(row[6]),
-                foreign_currency_code=None if row[5] == row[6] else row[7],
-                notes=make_notes({"Op Type": row[3], "Description": row[4]}),
-            )
+    def __init__(
+        self, data: BytesIO, account: Account, tz: ZoneInfo, primary_currency: Currency
+    ):
+        super().__init__(
+            data, account, tz, load_config(self.config_name), primary_currency
+        )
 
 
-class _ABRecord(NamedTuple):
-    account: str
-    currency: str
-    date: datetime
-    doc_number: str
-    amount: Optional[Money]
-    purpose: str
+class AvalStatementParser(ConcreteStatementParser):
+    config_name = "aval_online.yaml"
 
 
-class AvalBusinessStatementParser(StatementParser):
-    HEADER = [
-        "ЄДРПОУ",
-        "МФО",
-        "Рахунок",
-        "Валюта",
-        "Дата операції",
-        "Код операції",
-        "МФО банка",
-        "Назва банка",
-        "Рахунок кореспондента",
-        "ЄДРПОУ кореспондента",
-        "Кореспондент",
-        "Документ",
-        "Дата документа",
-        "Дебет",
-        "Кредит",
-        "Призначення платежу",
-        "Гривневе покриття",
-    ]
-
-    def _create_reader(self) -> BaseStatementReader:
-        return CSVStatementReader(self.data, delimiter=";", encoding="cp1251")
-
-    def _parse_rows(
-        self, rows: Iterable[Sequence[ValueType]]
-    ) -> Iterable[StatementTransaction]:
-        own_records = []
-        other_records_map = {}
-        for row in rows:
-            row = cast(Sequence[str], row)
-            if row[13] and row[14]:
-                raise ValueError("Both debit and credit are present")
-            record = _ABRecord(
-                account=row[2],
-                currency=row[3],
-                date=datetime.strptime(row[4], "%d.%m.%Y %H:%M").replace(
-                    tzinfo=self.tz
-                ),
-                doc_number=row[11],
-                amount=-Money(row[13]) if row[13] else Money(row[14]),
-                purpose=row[15],
-            )
-            if not record.amount:
-                continue
-            if record.account == self.account.iban:
-                own_records.append(record)
-            else:
-                other_records_map[record.doc_number] = record
-        own_records.sort(key=lambda x: x.date)
-        for record in own_records:
-            if other_record := other_records_map.get(record.doc_number):
-                assert record.amount is not None
-                assert other_record.amount is not None
-                if record.amount * other_record.amount >= 0:
-                    raise ValueError("Same direction")
-                yield StatementTransaction(
-                    name=record.purpose,
-                    date=min(record.date, other_record.date),
-                    amount=record.amount,
-                    foreign_amount=-other_record.amount,
-                    foreign_currency_code=other_record.currency,
-                    notes=make_notes(
-                        {
-                            "Description 1": record.purpose,
-                            "Description 2": other_record.purpose,
-                            "Account": other_record.account,
-                        }
-                    ),
-                )
-            else:
-                yield StatementTransaction(
-                    name=record.purpose,
-                    date=record.date,
-                    amount=record.amount,
-                    notes=make_notes({"Description": record.purpose}),
-                    foreign_amount=None,
-                    foreign_currency_code=None,
-                )
+class AvalBusinessStatementParser(ConcreteStatementParser):
+    config_name = "aval_business.yaml"
 
 
-class PrivatStatementParser(StatementParser):
-    HEADER = [
-        "Дата",
-        "Категорія",
-        "Картка",
-        "Опис операції",
-        "Сума в валюті картки",
-        "Валюта картки",
-        "Сума в валюті транзакції",
-        "Валюта транзакції",
-        "Залишок на кінець періоду",
-        "Валюта залишку",
-    ]
-
-    @staticmethod
-    def _money(s: float | int) -> Money:
-        return Money(Decimal(s).quantize(Decimal("0.01")))
-
-    def _create_reader(self) -> BaseStatementReader:
-        return XSLXStatementReader(self.data)
-
-    def _parse_rows(
-        self, rows: Iterable[Sequence[ValueType]]
-    ) -> Iterable[StatementTransaction]:
-        for row in rows:
-            assert isinstance(row[4], (float, int))
-            assert isinstance(row[6], (float, int))
-            yield StatementTransaction(
-                name=str(row[3]),
-                date=datetime.strptime(str(row[0]), "%d.%m.%Y %H:%M:%S").replace(
-                    tzinfo=self.tz
-                ),
-                amount=self._money(row[4]),
-                foreign_amount=None if row[4] == row[6] else self._money(row[6]),
-                foreign_currency_code=None if row[4] == row[6] else str(row[7]),
-                notes=make_notes({"Category": str(row[1]), "Description": str(row[3])}),
-            )
+class PrivatStatementParser(ConcreteStatementParser):
+    config_name = "privat24.yaml"

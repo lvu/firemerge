@@ -24,10 +24,6 @@ class DisplayTransactionType(Enum):
     Reconciliation = "reconciliation"
 
 
-class AccountSettings(BaseModel):
-    blacklist: list[str] = []
-
-
 class TransactionCandidate(BaseModel):
     model_config = ConfigDict(frozen=True)
     description: str
