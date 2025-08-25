@@ -3,7 +3,7 @@ from typing import Annotated, AsyncIterable, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query
 
-from firemerge.deps import FireflyClientDep
+from firemerge.api.deps import FireflyClientDep
 from firemerge.firefly_client import FireflyClient
 from firemerge.merge import best_candidates, deduplicate_candidates, merge_transactions
 from firemerge.model.api import (
@@ -16,10 +16,10 @@ from firemerge.model.api import (
 from firemerge.model.firefly import Transaction, TransactionState, TransactionType
 from firemerge.util import async_collect
 
-api_router = APIRouter(prefix="/transactions")
+router = APIRouter(prefix="/transactions")
 
 
-@api_router.post("/")
+@router.post("/")
 async def get_transactions(
     account_id: Annotated[int, Query(...)],
     statement: Annotated[list[StatementTransaction], Body(...)],
@@ -37,7 +37,7 @@ async def get_transactions(
     )
 
 
-@api_router.put("/")
+@router.put("/")
 async def store_transaction(
     account_id: Annotated[int, Query(...)],
     transaction: Annotated[DisplayTransaction, Body(...)],
@@ -135,7 +135,7 @@ async def store_transaction(
     return response
 
 
-@api_router.get("/descriptions")
+@router.get("/descriptions")
 async def search_descriptions(
     account_id: Annotated[int, Query(...)],
     query: Annotated[str, Query(...)],

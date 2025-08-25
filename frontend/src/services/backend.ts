@@ -120,7 +120,7 @@ export async function parseStatement(
   const formData = new FormData();
   formData.append('file', file);
   return (await apiFetch<StatementTransaction[]>(
-    `/api/parse_statement`,
+    `/api/statement/parse`,
     { timezone, account_id: accountId.toString() },
     {
       method: 'POST',

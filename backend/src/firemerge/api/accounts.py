@@ -6,25 +6,25 @@ from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query, Response
 
-from firemerge.deps import FireflyClientDep
+from firemerge.api.deps import FireflyClientDep
 from firemerge.model.account_settings import AccountSettings
 from firemerge.model.common import Account
 from firemerge.model.firefly import TransactionType
 
-api_router = APIRouter(prefix="/accounts")
+router = APIRouter(prefix="/accounts")
 
 
-@api_router.get("/")
+@router.get("/")
 async def get_accounts(firefly_client: FireflyClientDep) -> List[Account]:
     return await firefly_client.get_accounts()
 
 
-@api_router.get("/{account_id}")
+@router.get("/{account_id}")
 async def get_account(account_id: int, firefly_client: FireflyClientDep) -> Account:
     return await firefly_client.get_account(account_id)
 
 
-@api_router.get("/{account_id}/settings")
+@router.get("/{account_id}/settings")
 async def get_account_settings(
     account_id: int,
     firefly_client: FireflyClientDep,
@@ -32,7 +32,7 @@ async def get_account_settings(
     return await firefly_client.get_account_settings(account_id)
 
 
-@api_router.post("/{account_id}/settings")
+@router.post("/{account_id}/settings")
 async def update_account_settings(
     account_id: int,
     settings: Annotated[AccountSettings, Body(...)],
@@ -41,7 +41,7 @@ async def update_account_settings(
     await firefly_client.update_account_settings(account_id, settings)
 
 
-@api_router.get("/{account_id}/taxer-statement")
+@router.get("/{account_id}/taxer-statement")
 async def get_taxer_statement(
     account_id: int,
     start_date: Annotated[
