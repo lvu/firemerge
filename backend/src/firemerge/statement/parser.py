@@ -1,5 +1,4 @@
 import logging
-from abc import ABC
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime, time
 from decimal import Decimal
@@ -17,7 +16,6 @@ from firemerge.model.account_settings import (
 )
 from firemerge.model.api import StatementTransaction
 from firemerge.model.common import Account, Currency, Money
-from firemerge.statement.config_repo import load_config
 from firemerge.statement.reader import (
     BaseStatementReader,
     CSVStatementReader,
@@ -29,7 +27,7 @@ from firemerge.statement.reader import (
 logger = logging.getLogger("uvicorn.error")
 
 
-class NewStatementParser:
+class StatementParser:
     def __init__(
         self,
         data: BytesIO,
@@ -81,7 +79,7 @@ class NewStatementParser:
         if not found:
             raise ValueError("Statement not found")
 
-    def _parse(self) -> Iterable[StatementTransaction]:
+    def parse(self) -> Iterable[StatementTransaction]:
         for transaction in self._parse_rows(self._iter_rows()):
             if transaction.notes and any(
                 b.lower() in transaction.notes.lower() for b in self.settings.blacklist
@@ -209,50 +207,3 @@ class NewStatementParser:
             foreign_currency_code=foreign_currency_code,
             notes="\n".join(notes) if notes else None,
         )
-
-
-class StatementParser(ABC):
-    @classmethod
-    def parse(
-        cls,
-        data: BytesIO,
-        account: Account,
-        settings: AccountSettings,
-        tz: ZoneInfo,
-        primary_currency: Currency,
-    ) -> list[StatementTransaction]:
-        errors = []
-        for parser_class in ConcreteStatementParser.__subclasses__():
-            data.seek(0)
-            try:
-                return list(parser_class(data, account, tz, primary_currency)._parse())
-            except Exception as e:
-                errors.append(e)
-        raise ExceptionGroup("Failed to parse statement", errors)
-
-
-class ConcreteStatementParser(NewStatementParser):
-    config_name: str
-
-    def __init__(
-        self, data: BytesIO, account: Account, tz: ZoneInfo, primary_currency: Currency
-    ):
-        super().__init__(
-            data,
-            account,
-            tz,
-            AccountSettings(parser_settings=load_config(self.config_name)),
-            primary_currency,
-        )
-
-
-class AvalStatementParser(ConcreteStatementParser):
-    config_name = "aval_online.yaml"
-
-
-class AvalBusinessStatementParser(ConcreteStatementParser):
-    config_name = "aval_business.yaml"
-
-
-class PrivatStatementParser(ConcreteStatementParser):
-    config_name = "privat24.yaml"

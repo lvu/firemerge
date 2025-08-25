@@ -7,10 +7,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.param_functions import Query
 
 from firemerge.api.deps import FireflyClientDep
-from firemerge.model.account_settings import (
-    AccountSettings,
-    RepoStatementParserSettings,
-)
+from firemerge.model.account_settings import RepoStatementParserSettings
 from firemerge.model.api import StatementTransaction
 from firemerge.statement.config_repo import load_configs
 from firemerge.statement.parser import StatementParser
@@ -36,8 +33,9 @@ async def parse_statement(
             for c in await firefly_client.get_currencies()
             if c.id == account.currency_id
         )
-        if settings is None:
-            settings = AccountSettings()
+
+        if settings is None or settings.parser_settings is None:
+            raise HTTPException(status_code=400, detail="Account settings not found")
 
         # Validate timezone
         try:
@@ -47,9 +45,8 @@ async def parse_statement(
 
         # Parse the statement
         try:
-            return StatementParser.parse(
-                content, account, settings, tz, primary_currency
-            )
+            parser = StatementParser(content, account, tz, settings, primary_currency)
+            return list(parser.parse())
         except Exception as e:
             logger.exception("Parse failed")
             raise HTTPException(status_code=400, detail=str(e)) from e

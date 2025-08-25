@@ -9,7 +9,7 @@ from firemerge.model.account_settings import AccountSettings
 from firemerge.model.api import StatementTransaction
 from firemerge.model.common import Account, AccountType, Currency, Money
 from firemerge.statement.config_repo import load_config
-from firemerge.statement.parser import NewStatementParser
+from firemerge.statement.parser import StatementParser
 from firemerge.statement.reader import BaseStatementReader, ValueType
 
 
@@ -117,7 +117,7 @@ def test_statement_aval(account_primary, utc, currency_usd):
         ]
     )
     aval_settings = load_config("aval_online.yaml")
-    parser = NewStatementParser(
+    parser = StatementParser(
         None,
         account_primary,
         utc,
@@ -239,7 +239,7 @@ def test_statement_aval_business_primary(
     account_primary, utc, aval_reader, currency_usd, iban_primary, iban_secondary
 ):
     aval_settings = load_config("aval_business.yaml")
-    parser = NewStatementParser(
+    parser = StatementParser(
         None,
         account_primary,
         utc,
@@ -280,7 +280,7 @@ def test_statement_aval_business_secondary(
     account_secondary, utc, aval_reader, currency_eur, iban_primary, iban_secondary
 ):
     aval_settings = load_config("aval_business.yaml")
-    parser = NewStatementParser(
+    parser = StatementParser(
         None,
         account_secondary,
         utc,
@@ -359,7 +359,7 @@ def test_statement_privat(account_primary, utc, currency_usd):
         ]
     )
     privat_settings = load_config("privat24.yaml")
-    parser = NewStatementParser(
+    parser = StatementParser(
         None,
         account_primary,
         utc,
