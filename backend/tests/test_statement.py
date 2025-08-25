@@ -5,6 +5,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
+from firemerge.model.account_settings import AccountSettings
 from firemerge.model.api import StatementTransaction
 from firemerge.model.common import Account, AccountType, Currency, Money
 from firemerge.statement.config_repo import load_config
@@ -116,7 +117,13 @@ def test_statement_aval(account_primary, utc, currency_usd):
         ]
     )
     aval_settings = load_config("aval_online.yaml")
-    parser = NewStatementParser(None, account_primary, utc, aval_settings, currency_usd)
+    parser = NewStatementParser(
+        None,
+        account_primary,
+        utc,
+        AccountSettings(parser_settings=aval_settings),
+        currency_usd,
+    )
     with patch.object(parser, "_create_reader", return_value=reader):
         transactions = list(parser._parse())
 
@@ -232,7 +239,13 @@ def test_statement_aval_business_primary(
     account_primary, utc, aval_reader, currency_usd, iban_primary, iban_secondary
 ):
     aval_settings = load_config("aval_business.yaml")
-    parser = NewStatementParser(None, account_primary, utc, aval_settings, currency_usd)
+    parser = NewStatementParser(
+        None,
+        account_primary,
+        utc,
+        AccountSettings(parser_settings=aval_settings),
+        currency_usd,
+    )
     with patch.object(parser, "_create_reader", return_value=aval_reader):
         transactions = sorted(parser._parse(), key=lambda x: x.date, reverse=True)
 
@@ -268,7 +281,11 @@ def test_statement_aval_business_secondary(
 ):
     aval_settings = load_config("aval_business.yaml")
     parser = NewStatementParser(
-        None, account_secondary, utc, aval_settings, currency_eur
+        None,
+        account_secondary,
+        utc,
+        AccountSettings(parser_settings=aval_settings),
+        currency_eur,
     )
     with patch.object(parser, "_create_reader", return_value=aval_reader):
         transactions = sorted(parser._parse(), key=lambda x: x.date, reverse=True)
@@ -343,7 +360,11 @@ def test_statement_privat(account_primary, utc, currency_usd):
     )
     privat_settings = load_config("privat24.yaml")
     parser = NewStatementParser(
-        None, account_primary, utc, privat_settings, currency_usd
+        None,
+        account_primary,
+        utc,
+        AccountSettings(parser_settings=privat_settings),
+        currency_usd,
     )
     with patch.object(parser, "_create_reader", return_value=reader):
         transactions = list(parser._parse())

@@ -37,6 +37,7 @@ def serve_web():
     logging.getLogger("pdfminer").setLevel(logging.ERROR)
     listen_url = urllib.parse.urlparse("//" + os.getenv("LISTEN_URL", "0.0.0.0:8080"))
     assert listen_url.hostname and listen_url.port
+
     uvicorn.run(
         app, host=listen_url.hostname, port=int(listen_url.port), log_level="info"
     )

@@ -16,41 +16,59 @@ export type Account = {
   current_balance?: number;
 };
 
-export type ColumnMapping = {
-  name: string;
-  role:
-    | 'date'
-    | 'description'
-    | 'amount'
-    | 'foreign_amount'
-    | 'foreign_currency'
-    | 'category'
-    | 'account'
-    | 'notes'
-    | 'ignore';
-  required: boolean;
-  format?: string; // For dates: "%d.%m.%Y %H:%M", "%Y-%m-%d", etc.
-  decimalSeparator?: string; // For amounts: ".", ","
-  thousandsSeparator?: string; // For amounts: " ", ",", ""
-  currencyColumn?: string; // For foreign amounts
+export type StatementFormat = 'csv' | 'xlsx' | 'pdf';
+
+export type StatementFormatSettingsCSV = {
+  format: 'csv';
+  separator: string;
+  encoding: string;
 };
 
-export type ParsingSettings = {
-  fileType: 'pdf' | 'csv' | 'xlsx';
-  encoding?: string; // For CSV files: "utf-8", "cp1251", etc.
-  delimiter?: string; // For CSV files: ";", ",", "\t"
-  hasHeader: boolean;
-  skipRows?: number;
-  dateFormat: string;
-  decimalSeparator: string;
-  thousandsSeparator: string;
-  columns: ColumnMapping[];
-  blacklist: string[];
+export type StatementFormatSettingsXLSX = {
+  format: 'xlsx';
+};
+
+export type StatementFormatSettingsPDF = {
+  format: 'pdf';
+};
+
+export type StatementFormatSettings =
+  | StatementFormatSettingsCSV
+  | StatementFormatSettingsXLSX
+  | StatementFormatSettingsPDF;
+
+export type ColumnRole =
+  | 'date'
+  | 'name'
+  | 'iban'
+  | 'currency_code'
+  | 'amount'
+  | 'amount_debit'
+  | 'amount_credit'
+  | 'foreign_currency_code'
+  | 'foreign_amount'
+  | 'doc_number';
+
+export type ColumnInfo = {
+  name: string;
+  notes_label?: string;
+  role?: ColumnRole;
+};
+
+export type StatementParserSettings = {
+  columns: ColumnInfo[];
+  format: StatementFormatSettings;
+  date_format: string;
+  decimal_separator?: string;
 };
 
 export type AccountSettings = {
   blacklist: string[];
-  parsingSettings?: ParsingSettings;
+  parser_settings?: StatementParserSettings;
+};
+
+export type RepoStatementParserSettings = StatementParserSettings & {
+  label: string;
 };
 
 export type Category = {

@@ -122,5 +122,5 @@ class AccountSettings(BaseModel):
     parser_settings: StatementParserSettings | None = None
 
 
-class AccountSettingsConfig(AccountSettings):
+class RepoStatementParserSettings(StatementParserSettings):
     label: str

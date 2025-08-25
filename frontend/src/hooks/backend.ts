@@ -9,12 +9,14 @@ import {
   parseStatement,
   getAccountSettings,
   updateAccountSettings,
+  getRepoStatementParserSettings,
 } from '../services/backend';
 import type {
   Account,
   AccountSettings,
   Category,
   Currency,
+  RepoStatementParserSettings,
   StatementTransaction,
   Transaction,
   TransactionUpdateResponse,
@@ -140,6 +142,14 @@ export const useAccountDetails = (accountId?: number) => {
     queryKey: ['account_details', accountId],
     queryFn: () => getAccount(accountId!),
     enabled: !!accountId,
+    staleTime: Infinity,
+  });
+};
+
+export const useRepoStatementParserSettings = () => {
+  return useQuery<RepoStatementParserSettings[]>({
+    queryKey: ['global', 'repo_statement_parser_settings'],
+    queryFn: getRepoStatementParserSettings,
     staleTime: Infinity,
   });
 };

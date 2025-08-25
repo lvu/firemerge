@@ -238,7 +238,11 @@ class ConcreteStatementParser(NewStatementParser):
         self, data: BytesIO, account: Account, tz: ZoneInfo, primary_currency: Currency
     ):
         super().__init__(
-            data, account, tz, load_config(self.config_name), primary_currency
+            data,
+            account,
+            tz,
+            AccountSettings(parser_settings=load_config(self.config_name)),
+            primary_currency,
         )
 
 

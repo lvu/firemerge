@@ -7,6 +7,7 @@ import type {
   TransactionUpdateResponse,
   StatementTransaction,
   AccountSettings,
+  RepoStatementParserSettings,
 } from '../types/backend';
 
 async function apiFetch<T>(
@@ -156,4 +157,8 @@ export async function updateTransaction(
       },
     },
   ))!;
+}
+
+export async function getRepoStatementParserSettings(): Promise<RepoStatementParserSettings[]> {
+  return (await apiFetch<RepoStatementParserSettings[]>('/api/statement/configs'))!;
 }

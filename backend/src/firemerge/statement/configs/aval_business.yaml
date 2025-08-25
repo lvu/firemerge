@@ -1,34 +1,33 @@
 label: "Aval Business"
-parser_settings:
-  format:
-    format: csv
-    separator: ";"
-    encoding: cp1251
-  date_format: "%d.%m.%Y %H:%M"
-  columns:
-    - name: "ЄДРПОУ"
-    - name: "МФО"
-    - name: "Рахунок"
-      role: iban
-      notes_label: "IBAN"
-    - name: "Валюта"
-      role: currency_code
-    - name: "Дата операції"
-      role: date
-    - name: "Код операції"
-    - name: "МФО банка"
-    - name: "Назва банка"
-    - name: "Рахунок кореспондента"
-    - name: "ЄДРПОУ кореспондента"
-    - name: "Кореспондент"
-    - name: "Документ"
-      role: doc_number
-    - name: "Дата документа"
-    - name: "Дебет"
-      role: amount_debit
-    - name: "Кредит"
-      role: amount_credit
-    - name: "Призначення платежу"
-      role: name
-      notes_label: "Description"
-    - name: "Гривневе покриття"
+format:
+  format: csv
+  separator: ";"
+  encoding: cp1251
+date_format: "%d.%m.%Y %H:%M"
+columns:
+  - name: "ЄДРПОУ"
+  - name: "МФО"
+  - name: "Рахунок"
+    role: iban
+    notes_label: "IBAN"
+  - name: "Валюта"
+    role: currency_code
+  - name: "Дата операції"
+    role: date
+  - name: "Код операції"
+  - name: "МФО банка"
+  - name: "Назва банка"
+  - name: "Рахунок кореспондента"
+  - name: "ЄДРПОУ кореспондента"
+  - name: "Кореспондент"
+  - name: "Документ"
+    role: doc_number
+  - name: "Дата документа"
+  - name: "Дебет"
+    role: amount_debit
+  - name: "Кредит"
+    role: amount_credit
+  - name: "Призначення платежу"
+    role: name
+    notes_label: "Description"
+  - name: "Гривневе покриття"

@@ -1,10 +1,14 @@
+import logging
 from contextlib import asynccontextmanager
 from typing import Annotated, AsyncIterator, TypedDict
 
 from fastapi import Depends, FastAPI, Request
 from httpx import AsyncClient
+from starlette.routing import Route
 
 from firemerge.firefly_client import FireflyClient
+
+logger = logging.getLogger("uvicorn.error")
 
 
 class State(TypedDict):
@@ -14,6 +18,14 @@ class State(TypedDict):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[State]:
+    logger.info("Known routes:")
+    for route in app.routes:
+        if isinstance(route, Route) and route.methods:
+            logger.info(
+                f"  {'/'.join(route.methods)} {route.path} "
+                f"-> {route.endpoint.__qualname__}"
+            )
+
     async with AsyncClient() as client:
         firefly_client = FireflyClient.from_env(client)
         yield {"http_client": client, "firefly_client": firefly_client}
