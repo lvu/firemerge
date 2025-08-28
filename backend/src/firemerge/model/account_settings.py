@@ -117,9 +117,61 @@ class StatementParserSettings(BaseModel):
         return self
 
 
+class ExportFieldType(Enum):
+    DATE = "date"
+    AMOUNT = "amount"
+    CURRENCY_CODE = "currency_code"
+    FOREIGN_AMOUNT = "foreign_amount"
+    FOREIGN_CURRENCY_CODE = "foreign_currency_code"
+    SOURCE_ACCOUNT_NAME = "source_account_name"
+    DESTINATION_ACCOUNT_NAME = "destination_account_name"
+    EMPTY = "empty"
+    CONSTANT = "constant"
+    EXCHANGE_RATE = "exchange_rate"
+
+
+class DateExportField(BaseModel):
+    label: str
+    type: Literal[ExportFieldType.DATE] = ExportFieldType.DATE
+    format: str
+
+
+class ConstantExportField(BaseModel):
+    label: str
+    type: Literal[ExportFieldType.CONSTANT] = ExportFieldType.CONSTANT
+    value: str
+
+
+class OtherExportField(BaseModel):
+    label: str
+    type: Literal[
+        ExportFieldType.AMOUNT,
+        ExportFieldType.CURRENCY_CODE,
+        ExportFieldType.FOREIGN_AMOUNT,
+        ExportFieldType.FOREIGN_CURRENCY_CODE,
+        ExportFieldType.SOURCE_ACCOUNT_NAME,
+        ExportFieldType.DESTINATION_ACCOUNT_NAME,
+        ExportFieldType.EMPTY,
+        ExportFieldType.EXCHANGE_RATE
+    ]
+
+
+ExportField = Annotated[
+    DateExportField | ConstantExportField | OtherExportField,
+    Field(discriminator="type"),
+]
+
+
+class ExportSettings(BaseModel):
+    deposit: list[ExportField] | None = None
+    withdrawal: list[ExportField] | None = None
+    transfer: list[ExportField] | None = None
+
+
 class AccountSettings(BaseModel):
     blacklist: list[str] = []
     parser_settings: StatementParserSettings | None = None
+    export_settings: ExportSettings | None = None
 
 
 class RepoStatementParserSettings(StatementParserSettings):
