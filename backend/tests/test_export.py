@@ -1,107 +1,103 @@
 from datetime import datetime
+
 import pytest
 
-from firemerge.model.account_settings import ExportSettings, ExportFieldType
-from firemerge.model.firefly import Transaction, TransactionType
+from firemerge.model.account_settings import ExportFieldType, ExportSettings
 from firemerge.model.common import Money
+from firemerge.model.firefly import Transaction, TransactionType
 from firemerge.statement.export import export_statement
 
 
 @pytest.fixture
 def export_settings():
-    return ExportSettings.model_validate({
-        "deposit": [
-            {
-                "label": "Tax Code",
-                "type": ExportFieldType.CONSTANT,
-                "value": "TAX_CODE"
-            },
-            {
-                "label": "Date",
-                "type": ExportFieldType.DATE,
-                "format": "%Y-%m-%d"
-            },
-            {
-                "label": "Amount",
-                "type": ExportFieldType.AMOUNT,
-                "format": "%Y-%m-%d"
-            },
-            {
-                "label": "Comment",
-                "type": ExportFieldType.EMPTY,
-            },
-            {
-                "label": "Op Class",
-                "type": ExportFieldType.EMPTY,
-            },
-            {
-                "label": "Op Type",
-                "type": ExportFieldType.EMPTY,
-            },
-            {
-                "label": "Destination Account",
-                "type": ExportFieldType.DESTINATION_ACCOUNT_NAME,
-            },
-            {
-                "label": "Currency Code",
-                "type": ExportFieldType.CURRENCY_CODE,
-            },
-        ],
-        "transfer": [
-            {
-                "label": "Tax Code",
-                "type": ExportFieldType.CONSTANT,
-                "value": "TAX_CODE"
-            },
-            {
-                "label": "Date",
-                "type": ExportFieldType.DATE,
-                "format": "%Y-%m-%d"
-            },
-            {
-                "label": "Amount",
-                "type": ExportFieldType.AMOUNT,
-                "format": "%Y-%m-%d"
-            },
-            {
-                "label": "Comment",
-                "type": ExportFieldType.EMPTY,
-            },
-            {
-                "label": "Op Class",
-                "type": ExportFieldType.CONSTANT,
-                "value": "Обмін валюти"
-            },
-            {
-                "label": "Op Type",
-                "type": ExportFieldType.EMPTY,
-            },
-            {
-                "label": "Source Account",
-                "type": ExportFieldType.SOURCE_ACCOUNT_NAME,
-            },
-            {
-                "label": "Currency Code",
-                "type": ExportFieldType.CURRENCY_CODE,
-            },
-            {
-                "label": "Destination Account",
-                "type": ExportFieldType.DESTINATION_ACCOUNT_NAME,
-            },
-            {
-                "label": "Foreign Currency Code",
-                "type": ExportFieldType.FOREIGN_CURRENCY_CODE,
-            },
-            {
-                "label": "Exchange Rate",
-                "type": ExportFieldType.EXCHANGE_RATE,
-            },
-        ],
-    })
+    return ExportSettings.model_validate(
+        {
+            "deposit": [
+                {
+                    "label": "Tax Code",
+                    "type": ExportFieldType.CONSTANT,
+                    "value": "TAX_CODE",
+                },
+                {"label": "Date", "type": ExportFieldType.DATE, "format": "%Y-%m-%d"},
+                {
+                    "label": "Amount",
+                    "type": ExportFieldType.AMOUNT,
+                    "format": "%Y-%m-%d",
+                },
+                {
+                    "label": "Comment",
+                    "type": ExportFieldType.EMPTY,
+                },
+                {
+                    "label": "Op Class",
+                    "type": ExportFieldType.EMPTY,
+                },
+                {
+                    "label": "Op Type",
+                    "type": ExportFieldType.EMPTY,
+                },
+                {
+                    "label": "Destination Account",
+                    "type": ExportFieldType.DESTINATION_ACCOUNT_NAME,
+                },
+                {
+                    "label": "Currency Code",
+                    "type": ExportFieldType.CURRENCY_CODE,
+                },
+            ],
+            "transfer": [
+                {
+                    "label": "Tax Code",
+                    "type": ExportFieldType.CONSTANT,
+                    "value": "TAX_CODE",
+                },
+                {"label": "Date", "type": ExportFieldType.DATE, "format": "%Y-%m-%d"},
+                {
+                    "label": "Amount",
+                    "type": ExportFieldType.AMOUNT,
+                    "format": "%Y-%m-%d",
+                },
+                {
+                    "label": "Comment",
+                    "type": ExportFieldType.EMPTY,
+                },
+                {
+                    "label": "Op Class",
+                    "type": ExportFieldType.CONSTANT,
+                    "value": "Обмін валюти",
+                },
+                {
+                    "label": "Op Type",
+                    "type": ExportFieldType.EMPTY,
+                },
+                {
+                    "label": "Source Account",
+                    "type": ExportFieldType.SOURCE_ACCOUNT_NAME,
+                },
+                {
+                    "label": "Currency Code",
+                    "type": ExportFieldType.CURRENCY_CODE,
+                },
+                {
+                    "label": "Destination Account",
+                    "type": ExportFieldType.DESTINATION_ACCOUNT_NAME,
+                },
+                {
+                    "label": "Foreign Currency Code",
+                    "type": ExportFieldType.FOREIGN_CURRENCY_CODE,
+                },
+                {
+                    "label": "Exchange Rate",
+                    "type": ExportFieldType.EXCHANGE_RATE,
+                },
+            ],
+        }
+    )
 
 
-
-def test_export_statement(account_primary, account_secondary, currency_usd, currency_eur, export_settings):
+def test_export_statement(
+    account_primary, account_secondary, currency_usd, currency_eur, export_settings
+):
     account_map = {acct.id: acct.name for acct in [account_primary, account_secondary]}
     currency_map = {c.id: c.code for c in [currency_usd, currency_eur]}
     transactions = [
@@ -145,5 +141,6 @@ def test_export_statement(account_primary, account_secondary, currency_usd, curr
     content = export_statement(transactions, account_map, currency_map, export_settings)
     assert content == (
         "TAX_CODE,2021-01-01,150.00,,,,USD Account,USD\r\n"
-        "TAX_CODE,2021-01-02,100.00,,Обмін валюти,,USD Account,USD,EUR Account,EUR,0.90000\r\n"
+        "TAX_CODE,2021-01-02,100.00,,Обмін валюти,,USD Account,USD,EUR Account,"
+        "EUR,0.90000\r\n"
     )

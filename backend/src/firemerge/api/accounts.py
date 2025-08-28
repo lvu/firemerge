@@ -1,4 +1,3 @@
-import os
 from datetime import datetime
 from typing import Annotated, List, Optional
 
@@ -56,18 +55,31 @@ async def get_taxer_statement(
             detail="Invalid start_date format. Use ISO format (YYYY-MM-DD)",
         )
 
-    tax_code = os.getenv("TAX_CODE", "TAX_CODE")
-
-    # Get account and currency mappings
     account_map = {acc.id: acc.name for acc in await firefly_client.get_accounts()}
     currency_map = {
         curr.id: curr.code for curr in await firefly_client.get_currencies()
     }
 
-    transactions = await firefly_client.get_transactions(account_id, start_date_dt.date())
-    csv_content = export_statement(transactions, account_map, currency_map, tax_code)
+    transactions = await firefly_client.get_transactions(
+        account_id, start_date_dt.date()
+    )
+    account_settings = await firefly_client.get_account_settings(account_id)
+    if account_settings is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Account settings not found",
+        )
+    export_settings = account_settings.export_settings
+    if export_settings is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Export settings not found",
+        )
 
-    # Return CSV file
+    csv_content = export_statement(
+        transactions, account_map, currency_map, export_settings
+    )
+
     fname = f"firemerge_statement_{account_id}_{start_date_dt.date()}.csv"
     headers = {"Content-Disposition": f'attachment; filename="{fname}"'}
     return Response(content=csv_content, media_type="text/csv", headers=headers)

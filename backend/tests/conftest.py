@@ -30,7 +30,6 @@ def utc():
     return ZoneInfo("UTC")
 
 
-
 @pytest.fixture
 def iban_primary():
     return "US123456789012345678901234567890"

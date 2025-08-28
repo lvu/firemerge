@@ -1,9 +1,15 @@
-from io import StringIO
-from contextlib import closing
 import csv
+from contextlib import closing
+from io import StringIO
 
+from firemerge.model.account_settings import (
+    ConstantExportField,
+    DateExportField,
+    ExportField,
+    ExportFieldType,
+    ExportSettings,
+)
 from firemerge.model.firefly import Transaction, TransactionType
-from firemerge.model.account_settings import ExportSettings, ExportField, DateExportField, ExportFieldType, ConstantExportField, OtherExportField
 
 
 def export_field(
@@ -24,14 +30,19 @@ def export_field(
     if field.type == ExportFieldType.FOREIGN_AMOUNT:
         return f"{transaction.foreign_amount:.02f}"
     if field.type == ExportFieldType.FOREIGN_CURRENCY_CODE:
+        assert transaction.foreign_currency_id is not None
         return currency_map[transaction.foreign_currency_id]
     if field.type == ExportFieldType.SOURCE_ACCOUNT_NAME:
+        assert transaction.source_id is not None
         return account_map[transaction.source_id]
     if field.type == ExportFieldType.DESTINATION_ACCOUNT_NAME:
+        assert transaction.destination_id is not None
         return account_map[transaction.destination_id]
     if field.type == ExportFieldType.EMPTY:
         return ""
     if field.type == ExportFieldType.EXCHANGE_RATE:
+        assert transaction.foreign_amount is not None
+        assert transaction.amount != 0
         exchange_rate = transaction.foreign_amount / transaction.amount
         return f"{exchange_rate:.05f}"
     raise ValueError(f"Unknown field type: {field.type}")
@@ -43,7 +54,9 @@ def export_transaction(
     currency_map: dict[int, str],
     fields: list[ExportField],
 ) -> list[str]:
-    return [export_field(transaction, account_map, currency_map, field) for field in fields]
+    return [
+        export_field(transaction, account_map, currency_map, field) for field in fields
+    ]
 
 
 def export_statement(
@@ -65,6 +78,8 @@ def export_statement(
 
         for tr in transactions:
             if (fields := fields_map.get(tr.type)) is not None:
-                writer.writerow(export_transaction(tr, account_map, currency_map, fields))
+                writer.writerow(
+                    export_transaction(tr, account_map, currency_map, fields)
+                )
 
         return output.getvalue()
