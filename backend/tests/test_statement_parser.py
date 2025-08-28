@@ -1,13 +1,12 @@
 from collections.abc import Iterable, Sequence
 from datetime import datetime
 from unittest.mock import patch
-from zoneinfo import ZoneInfo
 
 import pytest
 
 from firemerge.model.account_settings import AccountSettings
 from firemerge.model.api import StatementTransaction
-from firemerge.model.common import Account, AccountType, Currency, Money
+from firemerge.model.common import Money
 from firemerge.statement.config_repo import load_config
 from firemerge.statement.parser import StatementParser
 from firemerge.statement.reader import BaseStatementReader, ValueType
@@ -19,63 +18,6 @@ class MockReader(BaseStatementReader):
 
     def iter_pages(self) -> Iterable[Iterable[Sequence[ValueType]]]:
         yield self.mock_data
-
-
-@pytest.fixture
-def iban_primary():
-    return "US123456789012345678901234567890"
-
-
-@pytest.fixture
-def iban_secondary():
-    return "US543210987654321098765432109876"
-
-
-@pytest.fixture
-def account_primary(iban_primary):
-    return Account(
-        id=1,
-        type=AccountType.Asset,
-        name="Test Account",
-        currency_id=1,
-        iban=iban_primary,
-    )
-
-
-@pytest.fixture
-def account_secondary(iban_secondary):
-    return Account(
-        id=2,
-        type=AccountType.Asset,
-        name="Test Account 2",
-        currency_id=2,
-        iban=iban_secondary,
-    )
-
-
-@pytest.fixture
-def currency_usd():
-    return Currency(
-        id=1,
-        code="USD",
-        name="US Dollar",
-        symbol="$",
-    )
-
-
-@pytest.fixture
-def currency_eur():
-    return Currency(
-        id=2,
-        code="EUR",
-        name="Euro",
-        symbol="€",
-    )
-
-
-@pytest.fixture
-def utc():
-    return ZoneInfo("UTC")
 
 
 def test_statement_aval(account_primary, utc, currency_usd):
@@ -125,7 +67,7 @@ def test_statement_aval(account_primary, utc, currency_usd):
         currency_usd,
     )
     with patch.object(parser, "_create_reader", return_value=reader):
-        transactions = list(parser._parse())
+        transactions = list(parser.parse())
 
     assert transactions == [
         StatementTransaction(
@@ -247,7 +189,7 @@ def test_statement_aval_business_primary(
         currency_usd,
     )
     with patch.object(parser, "_create_reader", return_value=aval_reader):
-        transactions = sorted(parser._parse(), key=lambda x: x.date, reverse=True)
+        transactions = sorted(parser.parse(), key=lambda x: x.date, reverse=True)
 
     assert transactions == [
         StatementTransaction(
@@ -288,7 +230,7 @@ def test_statement_aval_business_secondary(
         currency_eur,
     )
     with patch.object(parser, "_create_reader", return_value=aval_reader):
-        transactions = sorted(parser._parse(), key=lambda x: x.date, reverse=True)
+        transactions = sorted(parser.parse(), key=lambda x: x.date, reverse=True)
 
     assert transactions == [
         StatementTransaction(
@@ -367,7 +309,7 @@ def test_statement_privat(account_primary, utc, currency_usd):
         currency_usd,
     )
     with patch.object(parser, "_create_reader", return_value=reader):
-        transactions = list(parser._parse())
+        transactions = list(parser.parse())
 
     assert transactions == [
         StatementTransaction(

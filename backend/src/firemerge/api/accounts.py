@@ -1,7 +1,5 @@
-import csv
 import os
 from datetime import datetime
-from io import StringIO
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query, Response
@@ -9,7 +7,7 @@ from fastapi import APIRouter, Body, HTTPException, Query, Response
 from firemerge.api.deps import FireflyClientDep
 from firemerge.model.account_settings import AccountSettings
 from firemerge.model.common import Account
-from firemerge.model.firefly import TransactionType
+from firemerge.statement.export import export_statement
 
 router = APIRouter(prefix="/accounts")
 
@@ -66,56 +64,10 @@ async def get_taxer_statement(
         curr.id: curr.code for curr in await firefly_client.get_currencies()
     }
 
-    # Generate CSV content
-    output = StringIO()
-    writer = csv.writer(output)
-
-    seen_transactions = set()
-    for tr in await firefly_client.get_transactions(account_id, start_date_dt.date()):
-        if tr.id in seen_transactions:
-            continue
-        seen_transactions.add(tr.id)
-
-        if tr.type is TransactionType.Deposit and tr.destination_id is not None:
-            writer.writerow(
-                [
-                    tax_code,
-                    tr.date.date().isoformat(),
-                    f"{tr.amount:.02f}",
-                    "",
-                    "",
-                    "",
-                    account_map[tr.destination_id],
-                    currency_map[tr.currency_id],
-                ]
-            )
-        elif (
-            tr.type is TransactionType.Transfer
-            and tr.foreign_amount is not None
-            and tr.source_id is not None
-            and tr.destination_id is not None
-            and tr.foreign_currency_id is not None
-        ):
-            writer.writerow(
-                [
-                    tax_code,
-                    tr.date.date().isoformat(),
-                    f"{tr.amount:.02f}",
-                    "",
-                    "Обмін валюти",
-                    "",
-                    account_map[tr.source_id],
-                    currency_map[tr.currency_id],
-                    account_map[tr.destination_id],
-                    currency_map[tr.foreign_currency_id],
-                    f"{tr.foreign_amount / tr.amount:.05f}",
-                ]
-            )
-
-    csv_content = output.getvalue()
-    output.close()
+    transactions = await firefly_client.get_transactions(account_id, start_date_dt.date())
+    csv_content = export_statement(transactions, account_map, currency_map, tax_code)
 
     # Return CSV file
-    fname = f"taxer_statement_{account_id}_{start_date_dt.date()}.csv"
+    fname = f"firemerge_statement_{account_id}_{start_date_dt.date()}.csv"
     headers = {"Content-Disposition": f'attachment; filename="{fname}"'}
     return Response(content=csv_content, media_type="text/csv", headers=headers)
