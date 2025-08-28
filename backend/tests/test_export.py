@@ -22,18 +22,9 @@ def export_settings():
                 {
                     "label": "Amount",
                     "type": ExportFieldType.AMOUNT,
-                    "format": "%Y-%m-%d",
                 },
                 {
                     "label": "Comment",
-                    "type": ExportFieldType.EMPTY,
-                },
-                {
-                    "label": "Op Class",
-                    "type": ExportFieldType.EMPTY,
-                },
-                {
-                    "label": "Op Type",
                     "type": ExportFieldType.EMPTY,
                 },
                 {
@@ -55,20 +46,11 @@ def export_settings():
                 {
                     "label": "Amount",
                     "type": ExportFieldType.AMOUNT,
-                    "format": "%Y-%m-%d",
-                },
-                {
-                    "label": "Comment",
-                    "type": ExportFieldType.EMPTY,
                 },
                 {
                     "label": "Op Class",
                     "type": ExportFieldType.CONSTANT,
-                    "value": "Обмін валюти",
-                },
-                {
-                    "label": "Op Type",
-                    "type": ExportFieldType.EMPTY,
+                    "value": "Currency Exchange",
                 },
                 {
                     "label": "Source Account",
@@ -140,7 +122,6 @@ def test_export_statement(
     ]
     content = export_statement(transactions, account_map, currency_map, export_settings)
     assert content == (
-        "TAX_CODE,2021-01-01,150.00,,,,USD Account,USD\r\n"
-        "TAX_CODE,2021-01-02,100.00,,Обмін валюти,,USD Account,USD,EUR Account,"
-        "EUR,0.90000\r\n"
+        "TAX_CODE,2021-01-01,150.00,,USD Account,USD\r\n"
+        "TAX_CODE,2021-01-02,100.00,Currency Exchange,USD Account,USD,EUR Account,EUR,0.90000\r\n"
     )
