@@ -19,8 +19,19 @@ import {
   Divider,
   Tabs,
   Tab,
+  IconButton,
 } from '@mui/material';
-import { ExpandMore, Settings, Code, Tune, Block, Input } from '@mui/icons-material';
+import {
+  ExpandMore,
+  Settings,
+  Code,
+  Tune,
+  Block,
+  Input,
+  FileDownload,
+  Add,
+  Delete,
+} from '@mui/icons-material';
 import { useEffect, useState } from 'react';
 import {
   useAccountSettings,
@@ -34,6 +45,9 @@ import type {
   StatementParserSettings,
   StatementFormatSettingsCSV,
   StatementFormat,
+  ExportSettings,
+  ExportField,
+  ExportFieldType,
 } from '../types/backend';
 
 // Default parser settings
@@ -69,7 +83,21 @@ const columnRoles = [
   { value: 'doc_number', label: 'Document Number' },
 ];
 
+const exportFieldTypes: { value: ExportFieldType; label: string }[] = [
+  { value: 'date', label: 'Date' },
+  { value: 'amount', label: 'Amount' },
+  { value: 'currency_code', label: 'Currency Code' },
+  { value: 'foreign_amount', label: 'Foreign Amount' },
+  { value: 'foreign_currency_code', label: 'Foreign Currency Code' },
+  { value: 'source_account_name', label: 'Source Account Name' },
+  { value: 'destination_account_name', label: 'Destination Account Name' },
+  { value: 'empty', label: 'Empty' },
+  { value: 'constant', label: 'Constant' },
+  { value: 'exchange_rate', label: 'Exchange Rate' },
+];
+
 const dateFormats = [
+  { value: '%d.%m.%Y', label: 'DD.MM.YYYY' },
   { value: '%d.%m.%Y %H:%M', label: 'DD.MM.YYYY HH:MM' },
   { value: '%d.%m.%Y %H:%M:%S', label: 'DD.MM.YYYY HH:MM:SS' },
   { value: '%Y-%m-%d', label: 'YYYY-MM-DD' },
@@ -115,6 +143,7 @@ export const AccountSettingsDialog = ({
       setSettings({
         ...initialSettings,
         parser_settings: initialSettings.parser_settings || defaultParserSettings,
+        export_settings: initialSettings.export_settings,
       });
     }
   }, [initialSettings]);
@@ -130,6 +159,62 @@ export const AccountSettingsDialog = ({
     setSettings((prev) => ({
       ...prev,
       parser_settings: f(prev.parser_settings || defaultParserSettings),
+    }));
+  };
+
+  const updateExportSettings = (f: (settings: ExportSettings) => ExportSettings) => {
+    setSettings((prev) => ({
+      ...prev,
+      export_settings: f(prev.export_settings || { deposit: [], withdrawal: [], transfer: [] }),
+    }));
+  };
+
+  const removeExportSettings = () => {
+    setSettings((prev) => ({
+      ...prev,
+      export_settings: undefined,
+    }));
+  };
+
+  const addExportField = (transactionType: keyof ExportSettings) => {
+    updateExportSettings((prev) => ({
+      ...prev,
+      [transactionType]: [...(prev[transactionType] || []), { label: 'New Field', type: 'empty' }],
+    }));
+  };
+
+  const removeTransactionType = (transactionType: keyof ExportSettings) => {
+    updateExportSettings((prev) => ({
+      ...prev,
+      [transactionType]: undefined,
+    }));
+  };
+
+  const enableTransactionType = (transactionType: keyof ExportSettings) => {
+    updateExportSettings((prev) => ({
+      ...prev,
+      [transactionType]: [],
+    }));
+  };
+
+  const updateExportField = (
+    transactionType: keyof ExportSettings,
+    index: number,
+    field: string,
+    value: string,
+  ) => {
+    updateExportSettings((prev) => ({
+      ...prev,
+      [transactionType]: (prev[transactionType] || []).map((fieldItem, i) =>
+        i === index ? { ...fieldItem, [field]: value } : fieldItem,
+      ),
+    }));
+  };
+
+  const removeExportField = (transactionType: keyof ExportSettings, index: number) => {
+    updateExportSettings((prev) => ({
+      ...prev,
+      [transactionType]: (prev[transactionType] || []).filter((_, i) => i !== index),
     }));
   };
 
@@ -201,6 +286,216 @@ export const AccountSettingsDialog = ({
       );
     }
   };
+
+  const enableExportSettings = () => {
+    setSettings((prev) => ({
+      ...prev,
+      export_settings: {
+        deposit: [],
+        withdrawal: [],
+        transfer: [],
+      },
+    }));
+  };
+
+  const renderExportField = (
+    field: ExportField,
+    index: number,
+    transactionType: keyof ExportSettings,
+  ) => (
+    <Box
+      key={index}
+      sx={{
+        mb: 2,
+        p: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1,
+      }}
+    >
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' },
+          gap: 2,
+          alignItems: 'center',
+        }}
+      >
+        <TextField
+          fullWidth
+          label="Field Label"
+          value={field.label}
+          onChange={(e) => updateExportField(transactionType, index, 'label', e.target.value)}
+          placeholder="e.g., Transaction Date"
+        />
+
+        <FormControl fullWidth>
+          <InputLabel>Field Type</InputLabel>
+          <Select
+            value={field.type}
+            onChange={(e) => updateExportField(transactionType, index, 'type', e.target.value)}
+            label="Field Type"
+          >
+            {exportFieldTypes.map((type) => (
+              <MenuItem key={type.value} value={type.value}>
+                {type.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {field.type === 'date' && (
+          <FormControl fullWidth>
+            <InputLabel>Date Format</InputLabel>
+            <Select
+              value={(field as any).format || '%d.%m.%Y'}
+              onChange={(e) => updateExportField(transactionType, index, 'format', e.target.value)}
+              label="Date Format"
+            >
+              {dateFormats.map((format) => (
+                <MenuItem key={format.value} value={format.value}>
+                  {format.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+
+        {field.type === 'constant' && (
+          <TextField
+            fullWidth
+            label="Constant Value"
+            value={(field as any).value || ''}
+            onChange={(e) => updateExportField(transactionType, index, 'value', e.target.value)}
+            placeholder="e.g., USD"
+          />
+        )}
+
+        <IconButton
+          color="error"
+          onClick={() => removeExportField(transactionType, index)}
+          size="small"
+        >
+          <Delete />
+        </IconButton>
+      </Box>
+    </Box>
+  );
+
+  const renderExportSettings = () => (
+    <Box sx={{ mt: 2 }}>
+      {!settings.export_settings ? (
+        <Box>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Export Configuration
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Export settings are not configured. Enable them to configure how transaction data should be exported.
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={enableExportSettings}
+            size="small"
+          >
+            Enable Export Settings
+          </Button>
+        </Box>
+      ) : (
+        <>
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+            <Typography variant="h6">Export Configuration</Typography>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={removeExportSettings}
+              size="small"
+            >
+              Remove Export Settings
+            </Button>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Configure how transaction data should be exported for different transaction types.
+          </Typography>
+
+          {(['deposit', 'withdrawal', 'transfer'] as const).map((transactionType) => (
+            <Accordion key={transactionType} sx={{ mb: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMore />}>
+                <Box display="flex" alignItems="center" gap={1}>
+                  <FileDownload />
+                  <Typography variant="h6" sx={{ textTransform: 'capitalize' }}>
+                    {transactionType} Export Fields
+                  </Typography>
+                </Box>
+              </AccordionSummary>
+              <AccordionDetails>
+                {settings.export_settings![transactionType] === undefined ? (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Export fields for {transactionType} transactions are disabled.
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      onClick={() => enableTransactionType(transactionType)}
+                      size="small"
+                    >
+                      Enable {transactionType} Export
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box>
+                    <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+                      <Typography variant="subtitle1">
+                        Configure export fields for {transactionType} transactions
+                      </Typography>
+                      <Box display="flex" gap={1}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<Add />}
+                          onClick={() => addExportField(transactionType)}
+                          size="small"
+                        >
+                          Add Field
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          onClick={() => removeTransactionType(transactionType)}
+                          size="small"
+                        >
+                          Disable
+                        </Button>
+                      </Box>
+                    </Box>
+
+                    {settings.export_settings![transactionType]?.map((field, index) =>
+                      renderExportField(field, index, transactionType),
+                    )}
+
+                    {(!settings.export_settings![transactionType] ||
+                      settings.export_settings![transactionType].length === 0) && (
+                      <Box
+                        sx={{
+                          p: 3,
+                          textAlign: 'center',
+                          border: '1px dashed',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                        }}
+                      >
+                        <Typography variant="body2" color="text.secondary">
+                          No export fields configured. Click "Add Field" to get started.
+                        </Typography>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </AccordionDetails>
+            </Accordion>
+          ))}
+        </>
+      )}
+    </Box>
+  );
 
   const renderUIView = () => (
     <Box sx={{ mt: 2 }}>
@@ -434,6 +729,17 @@ export const AccountSettingsDialog = ({
             ))}
           </Box>
         </AccordionDetails>
+      </Accordion>
+
+      {/* Export Settings */}
+      <Accordion>
+        <AccordionSummary expandIcon={<ExpandMore />}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <FileDownload />
+            <Typography variant="h6">Export Configuration</Typography>
+          </Box>
+        </AccordionSummary>
+        <AccordionDetails>{renderExportSettings()}</AccordionDetails>
       </Accordion>
 
       <Accordion>

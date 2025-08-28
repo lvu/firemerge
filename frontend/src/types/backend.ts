@@ -65,6 +65,52 @@ export type StatementParserSettings = {
 export type AccountSettings = {
   blacklist: string[];
   parser_settings?: StatementParserSettings;
+  export_settings?: ExportSettings;
+};
+
+export type ExportFieldType =
+  | 'date'
+  | 'amount'
+  | 'currency_code'
+  | 'foreign_amount'
+  | 'foreign_currency_code'
+  | 'source_account_name'
+  | 'destination_account_name'
+  | 'empty'
+  | 'constant'
+  | 'exchange_rate';
+
+export type DateExportField = {
+  label: string;
+  type: 'date';
+  format: string;
+};
+
+export type ConstantExportField = {
+  label: string;
+  type: 'constant';
+  value: string;
+};
+
+export type OtherExportField = {
+  label: string;
+  type:
+    | 'amount'
+    | 'currency_code'
+    | 'foreign_amount'
+    | 'foreign_currency_code'
+    | 'source_account_name'
+    | 'destination_account_name'
+    | 'empty'
+    | 'exchange_rate';
+};
+
+export type ExportField = DateExportField | ConstantExportField | OtherExportField;
+
+export type ExportSettings = {
+  deposit?: ExportField[];
+  withdrawal?: ExportField[];
+  transfer?: ExportField[];
 };
 
 export type RepoStatementParserSettings = StatementParserSettings & {
