@@ -117,7 +117,7 @@ class StatementParserSettings(BaseModel):
         return self
 
 
-class ExportFieldType(Enum):
+class ExportFieldType(str, Enum):
     DATE = "date"
     AMOUNT = "amount"
     CURRENCY_CODE = "currency_code"
@@ -152,7 +152,7 @@ class OtherExportField(BaseModel):
         ExportFieldType.SOURCE_ACCOUNT_NAME,
         ExportFieldType.DESTINATION_ACCOUNT_NAME,
         ExportFieldType.EMPTY,
-        ExportFieldType.EXCHANGE_RATE,
+        ExportFieldType.EXCHANGE_RATE
     ]
 
 
