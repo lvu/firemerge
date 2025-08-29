@@ -1,34 +1,96 @@
 # Firefly transaction merger
 
+A customizable tool for semi-automated (not automated!) transaction entry for [Firefly III](https://firefly-iii.org/).
+
+## Features
+- Reads banking and credit card statements in CSV, XMLX and PDF (thanks to the excellent
+  [pdfplumber](https://github.com/jsvine/pdfplumber) lib).
+- Allows customization of the columns to parse the data from in these statements, on account-by-account basis.
+- "Guesses" the most relevant past transactions to copy the metadata (title, cateory and account) from.
+- Allows exporting a statetement for a specific account in a different format. This feature is quite limited,
+  as it was made for some very specific use case.
+
+## Mode of operation
+
+Firemerge operates as a web-based interface that bridges the gap between your bank statements and Firefly III. Here's how it works:
+
+### 1. **Statement Upload & Parsing**
+- Upload your bank statements in CSV, XLSX, or PDF format
+- The system uses configurable parsing rules to extract transaction data
+- Each account can have its own parsing configuration to handle different statement formats
+
+### 2. **Transaction Matching & Enrichment**
+- Firemerge analyzes your uploaded transactions and "guesses" the most relevant past transactions
+- It suggests metadata (description, category, account) based on similar historical transactions
+- You can review and modify these suggestions before importing
+- Firemerge also proposes you relevant transactions when you start entering a new description.
+
+### 3. **Flexible Configuration**
+- **Parser Settings**: Configure how to parse different statement formats for each account
+  - Column mapping (date, amount, description, etc.)
+  - File format settings (CSV encoding, separators, date formats)
+  - Support for different statement structures
+- **Export Settings**: Configure custom export formats for different transaction types
+  - Define export fields for deposits, withdrawals, and transfers
+  - Support for various field types (dates, amounts, constants, etc.)
+- **Blacklist**: Filter out unwanted transactions based on description keywords
+
+### 4. **Semi-Automated Workflow**
+1. Upload your bank statement
+2. Review the parsed transactions
+3. Accept or modify the suggested metadata
+4. Push the enriched transactions to Firefly III
+
+### 5. **Similarity lookup**
+- When a transaction is stored into Firefly III by Firemerge, a _Notes_ field is stored to it.
+It contains values from the bank statement, labelled in the account's import config with _Notes Label_.
+- When looking for similar transactions, it constructs the same _Notes_ field from a transaction,
+and uses fuzzy search on existing transactions from the same account.
+
+### 6. **Transaction states**
+In the UI, when you upload a statement, you will see a list of cards for transaction in different states.
+Those states are:
+- **Matched:** a transaction with the same amount was found in Firefly III on the same date, and it has the same
+  _Notes_ field; nothing is to be done about it.
+- **Annotated:** a matching (see above) trnsaction was found, but its _Notes_ differ. You can save new _Notes_
+  to it for it to be considered in further similarity lookups.
+- **Unmatched:** transaction only exists in Firefly III, no corresponding transaction was found in the statement.
+  This _could_ mean that you've entered it by mistake and you might want to delete it – do it in the Firefly III itself.
+- **New**: The transaction is in the statement, but not in Firelfy III. If this transaction has exactly one
+  similar candidate, you can save it right away; otherwise, you have to edit it, possbly picking on of the proposed
+  candidates to copy the metadata from.
+
+### 7. **Account-Specific Customization**
+- Each Firefly III account can have its own parsing and export configuration
+- Predefined configurations are available for some (currently, Ukraininan only) bank formats
+
+The system is designed to be **semi-automated** - it provides intelligent suggestions but always requires human review before importing to ensure accuracy and prevent errors.
+
+## Unsupported features
+- Split transactions
+- Tags
+- Budgets
+- Importig data into more than one account at a time
+
+All of those could be implemented, they are just out of my use case. PRs are welcome.
+
 ## Rationale
 
 I really like the [Firefly III](https://firefly-iii.org/) personal finance manager, but
 entring my transactions is always a PITA. [Waterfly III](https://github.com/dreautall/waterfly-iii) simplifies
 this process a lot, but it has its pitfalls:
-* it misses transactions sometimes;
-* it doesn't store the notifications, so if you accidentally swipe them out or reboot your phone, you lose them;
-* if there's more than 10 unprocessed notifications, the earlier ones get lost too.
+- it misses transactions sometimes;
+- it doesn't store the notifications, so if you accidentally swipe them out or reboot your phone, you lose them;
+- if there's more than 10 unprocessed notifications, the earlier ones get lost too.
 
 Plus, I always wanted to have an ability to load the data (description, account and category) from the latest similar
 transation; some transactions, like buying food in my local supermarket, are occuring frequently, and it just bugs me to
 enter these details manually, even with all the autocompletes. Using Firefly III rules isn't ideal either, as I'd like to
 have this info when entering the transaction, to be able to correct it if needed.
 
-## My use-case
 
-Matters get more complicated, as my bank ([Raiffeisen Ukraine](https://raiffeisen.ua/)) doesn't provide any API to get the bank statement; all it has currently is an ability to export a statement it a PDF(!) format.
+## Installation
 
-The project is rather bank-specific, especially the merging part, but it could probably be customized if needed.
-
-In general, you probably won't be able to use this project as is unless your use-case is nearly the same as mine.
-
-## Usage
-
-### Hosted Version (Recommended)
-
-The hosted version allows you to upload bank statements through a web interface and process them without running the application locally.
-
-#### Using Docker (Recommended)
 
 1. **Clone the repository:**
    ```bash
@@ -44,121 +106,29 @@ The hosted version allows you to upload bank statements through a web interface 
 
 3. **Run with Docker Compose:**
 
-   **Option A: Memory Storage (Default)**
-   ```bash
-   docker-compose up -d
+   Add the following to your _docker_compose.yml_, to the `services` section:
+   ```
+   firemerge:
+     build: .
+     ports:
+       - "8080:8080"
+     environment:
+       - FIREFLY_BASE_URL=${FIREFLY_BASE_URL}
+       - FIREFLY_TOKEN=${FIREFLY_TOKEN}
+     restart: unless-stopped
+     healthcheck:
+       test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+       interval: 30s
+       timeout: 10s
+       retries: 3
+       start_period: 40s
    ```
 
-   **Option B: Redis Storage (Production)**
-   ```bash
-   docker-compose -f docker-compose.redis.yml up -d
-   ```
-
-4. **Access the web interface:**
-   Open http://localhost:8080 in your browser
-
-#### Manual Installation
-
-If you prefer to install manually:
-
-1. **Install the project:**
-   ```bash
-   git clone https://github.com/lvu/firemerge.git
-   cd firemerge
-   python -m venv venv
-   . ./venv/bin/activate
-   pip install -e .
-   ```
-
-2. **Configure Firefly III credentials:**
-   Create a `.env` file in the project directory:
-   ```
-   FIREFLY_BASE_URL=https://my-firefly-installation.my-domain/
-   FIREFLY_TOKEN=MY.FIREFLY.PERSONAL.ACCESS.TOKEN
-   ```
-
-3. **Start the web server:**
-   ```bash
-   firemerge
-   ```
-
-4. **Access the web interface:**
-   Open http://localhost:8080 in your browser
-
+   Set up your reverse proxy accordingly, and run your `docker compose up -d`.
 
 
 > [!CAUTION]
 > The web app is intended to be used locally or in a secure environment; do not deploy it on the public web without proper authentication! The frontend communicates with the backend without any kind of authentication!
 
-## Features
-
-### Hosted Version
-- **File Upload**: Upload PDF bank statements through a web interface
-- **Statement Preview**: Review uploaded transactions before processing
-- **Account Selection**: Choose which Firefly III account to merge into
-- **Transaction Matching**: Intelligent matching with existing transactions
-- **Data Enrichment**: Auto-fill transaction details from similar previous transactions
-- **Real-time Processing**: Store transactions directly to Firefly III
-- **Taxer Statement Generation**: Generate CSV reports for tax purposes from any account
-
-### Security Considerations
-- Files are processed in memory and stored temporarily (Redis or memory)
-- Uploaded files are automatically deleted after 24 hours (Redis) or on restart (memory)
-- No persistent filesystem storage of uploaded files
-- Both storage backends provide secure, temporary storage with automatic cleanup
-
-## Other commands
-The application now focuses on the web interface. Additional functionality can be accessed through the web UI, including the taxer statement generation feature.
-
-## Requirements
-
-### Storage (Redis or Memory)
-FireMerge supports two storage backends for temporary data:
-
-#### Redis (Recommended for Production)
-- Automatic cleanup with 24-hour TTL
-- No filesystem dependencies
-- Better scalability for containerized deployments
-- Persistent across application restarts
-- Multi-instance support
-
-#### Memory (Default)
-- No external dependencies
-- Faster startup
-- Perfect for development and single-instance deployments
-- Data is lost on application restart
-
-Redis is optional - if not configured, the application will automatically use in-memory storage.
-
-## Deployment
-The included Dockerfile and docker-compose files make deployment straightforward:
-
-```bash
-# Memory storage (default)
-docker-compose up -d
-
-# Redis storage (production)
-docker-compose -f docker-compose.redis.yml up -d
-
-# Manual build with memory storage
-docker build -t firemerge .
-docker run -p 8080:8080 \
-  -e FIREFLY_BASE_URL=... \
-  -e FIREFLY_TOKEN=... \
-  firemerge
-
-# Manual build with Redis storage
-docker build -t firemerge .
-docker run -p 8080:8080 \
-  -e FIREFLY_BASE_URL=... \
-  -e FIREFLY_TOKEN=... \
-  -e REDIS_URL=redis://your-redis-host:6379 \
-  firemerge
-```
-
-### Production Considerations
-- Add reverse proxy (nginx) for SSL termination
-- Implement proper authentication/authorization
-- Use environment variables for configuration
-- Consider using a process manager (systemd, supervisor)
-- Monitor logs and application health
+The intended way of using it is to put it behind [OAuth2 Proxy] (https://oauth2-proxy.github.io/oauth2-proxy/)
+or something similar, to protect your financial data from being stolen or altered.
