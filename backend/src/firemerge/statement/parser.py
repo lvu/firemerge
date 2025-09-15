@@ -59,12 +59,11 @@ class StatementParser:
                 delimiter=self.parser_settings.format.separator,
                 encoding=self.parser_settings.format.encoding,
             )
-        elif isinstance(self.parser_settings.format, StatementFormatSettingsXLSX):
+        if isinstance(self.parser_settings.format, StatementFormatSettingsXLSX):
             return XSLXStatementReader(self.data)
-        elif isinstance(self.parser_settings.format, StatementFormatSettingsPDF):
+        if isinstance(self.parser_settings.format, StatementFormatSettingsPDF):
             return PDFStatementReader(self.data)
-        else:
-            raise ValueError("Invalid format")
+        raise ValueError("Invalid format")
 
     def _iter_rows(self) -> Iterable[Sequence[ValueType]]:
         found = False

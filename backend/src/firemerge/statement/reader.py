@@ -58,7 +58,7 @@ class PDFStatementReader(BaseStatementReader):
             yield [cell.replace("\n", " ") if cell else None for cell in row]
 
 
-def XSLXStatementReader(BaseStatementReader):
+class XSLXStatementReader(BaseStatementReader):
     def iter_pages(self) -> Iterable[Iterable[Sequence[ValueType]]]:
         wb = openpyxl.load_workbook(self.data, data_only=True, read_only=True)
         for sheet in wb.worksheets:
