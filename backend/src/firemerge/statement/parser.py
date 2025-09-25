@@ -93,7 +93,7 @@ class StatementParser:
             result = value
         elif isinstance(value, date):
             result = datetime.combine(value, time.min)
-        if isinstance(value, str):
+        elif isinstance(value, str):
             result = datetime.strptime(value, self.parser_settings.date_format)
         else:
             raise ValueError(f"Invalid date: {value}")
