@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Iterable, Sequence
 from datetime import date, datetime, time
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from math import copysign
 from zoneinfo import ZoneInfo
@@ -76,7 +76,7 @@ class StatementParser:
                     found = True
                     break
         if not found:
-            raise ValueError("Statement not found")
+            raise ValueError("No matching header found")
 
     def parse(self) -> Iterable[StatementTransaction]:
         for transaction in self._parse_rows(self._iter_rows()):
@@ -102,12 +102,16 @@ class StatementParser:
         return result
 
     def _parse_amount(self, value: ValueType) -> Money:
-        if isinstance(value, int | float | Decimal):
-            return Money(Decimal(value).quantize(Decimal("0.01")))
-        if isinstance(value, str):
-            if self.parser_settings.decimal_separator:
-                value = value.replace(self.parser_settings.decimal_separator, ".")
-            return Money(value.replace(" ", ""))
+        try:
+            if isinstance(value, int | float | Decimal):
+                return Money(Decimal(value).quantize(Decimal("0.01")))
+            if isinstance(value, str):
+                if self.parser_settings.decimal_separator:
+                    value = value.replace(self.parser_settings.decimal_separator, ".")
+                return Money(value.replace(" ", ""))
+        except InvalidOperation as e:
+            raise ValueError(f"Invalid amount: {value}") from e
+
         raise ValueError(f"Invalid amount: {value}")
 
     def _parse_rows(

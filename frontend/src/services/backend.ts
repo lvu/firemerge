@@ -28,7 +28,7 @@ async function apiFetch<T>(
       if (Array.isArray(json.detail)) {
         throw new PydanticError(json);
       }
-      message = json.message || message;
+      message = json.message || json.detail || message;
     } catch (e) {
       if (e instanceof PydanticError) {
         throw e;
