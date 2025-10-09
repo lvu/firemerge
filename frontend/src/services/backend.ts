@@ -9,6 +9,7 @@ import type {
   AccountSettings,
   RepoStatementParserSettings,
 } from '../types/backend';
+import { PydanticError } from '../types/errors';
 
 async function apiFetch<T>(
   input: RequestInfo,
@@ -24,8 +25,15 @@ async function apiFetch<T>(
     let message = `${res.status} ${res.statusText}`;
     try {
       const json = await res.json();
+      if (Array.isArray(json.detail)) {
+        throw new PydanticError(json);
+      }
       message = json.message || message;
-    } catch {
+    } catch (e) {
+      if (e instanceof PydanticError) {
+        throw e;
+      }
+      console.error(e);
       // body not JSON
     }
     throw new Error(message);

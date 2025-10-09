@@ -191,3 +191,11 @@ export function enrichTransaction(
     category_id: candidate.category_id,
   };
 }
+
+export type PydanticErrorResponse = {
+  detail: {
+    msg: string;
+    loc: string[];
+    type: string;
+  }[];
+};

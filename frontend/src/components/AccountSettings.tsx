@@ -11,8 +11,12 @@ import {
   TextField,
 } from '@mui/material';
 import { Settings, Code, Tune } from '@mui/icons-material';
-import { useState } from 'react';
-import { useAccountSettings, useUpdateAccountSettings, useRepoStatementParserSettings } from '../hooks/backend';
+import { useRef, useState } from 'react';
+import {
+  useAccountSettings,
+  useUpdateAccountSettings,
+  useRepoStatementParserSettings,
+} from '../hooks/backend';
 import type { Account } from '../types/backend';
 import {
   StatementParserConfig,
@@ -20,6 +24,7 @@ import {
   BlacklistConfig,
   useAccountSettingsState,
 } from './AccountSettings/index';
+import { ErrorDisplay } from './ErrorDisplay';
 
 export const AccountSettingsDialog = ({
   open,
@@ -32,7 +37,12 @@ export const AccountSettingsDialog = ({
 }) => {
   const { data: initialSettings, isLoading: isLoadingSettings } = useAccountSettings(account.id);
   const { data: configs, isLoading: isLoadingConfigs } = useRepoStatementParserSettings();
-  const { mutate: updateSettings } = useUpdateAccountSettings(account.id);
+  const {
+    mutate: updateSettings,
+    isError: isUpdateSettingsError,
+    error: updateSettingsError,
+  } = useUpdateAccountSettings(account.id);
+  const errorRef = useRef<HTMLDivElement | null>(null);
 
   const [viewMode, setViewMode] = useState<'ui' | 'json'>('ui');
   const [selectedConfig, setSelectedConfig] = useState<string>('');
@@ -50,8 +60,10 @@ export const AccountSettingsDialog = ({
   } = useAccountSettingsState(initialSettings || null);
 
   const handleSave = () => {
-    updateSettings(settings);
-    onClose();
+    updateSettings(settings, {
+      onSuccess: () => onClose(),
+      onError: () => setTimeout(() => errorRef.current?.scrollIntoView({ behavior: 'smooth' }), 10),
+    });
   };
 
   const handleConfigSelect = (configLabel: string) => {
@@ -131,6 +143,12 @@ export const AccountSettingsDialog = ({
             </Box>
 
             {viewMode === 'ui' ? renderUIView() : renderJSONView()}
+            <ErrorDisplay
+              ref={errorRef}
+              message="Error updating settings"
+              error={updateSettingsError}
+              visible={isUpdateSettingsError}
+            />
           </>
         )}
       </DialogContent>
