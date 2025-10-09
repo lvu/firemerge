@@ -107,6 +107,18 @@ export type OtherExportField = {
 
 export type ExportField = DateExportField | ConstantExportField | OtherExportField;
 
+export function isDateExportField(field: ExportField): field is DateExportField {
+  return field.type === 'date';
+}
+
+export function isConstantExportField(field: ExportField): field is ConstantExportField {
+  return field.type === 'constant';
+}
+
+export function isOtherExportField(field: ExportField): field is OtherExportField {
+  return field.type !== 'date' && field.type !== 'constant';
+}
+
 export type ExportSettings = {
   deposit?: ExportField[];
   withdrawal?: ExportField[];

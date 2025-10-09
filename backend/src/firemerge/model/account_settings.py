@@ -152,7 +152,7 @@ class OtherExportField(BaseModel):
         ExportFieldType.SOURCE_ACCOUNT_NAME,
         ExportFieldType.DESTINATION_ACCOUNT_NAME,
         ExportFieldType.EMPTY,
-        ExportFieldType.EXCHANGE_RATE
+        ExportFieldType.EXCHANGE_RATE,
     ]
 
 

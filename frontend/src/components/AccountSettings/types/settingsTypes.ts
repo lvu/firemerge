@@ -1,6 +1,18 @@
-import type { AccountSettings, StatementParserSettings, ExportSettings, ExportField, ExportFieldType } from '../../../types/backend';
+import type {
+  AccountSettings,
+  StatementParserSettings,
+  ExportSettings,
+  ExportField,
+  ExportFieldType,
+} from '../../../types/backend';
 
-export type { AccountSettings, StatementParserSettings, ExportSettings, ExportField, ExportFieldType };
+export type {
+  AccountSettings,
+  StatementParserSettings,
+  ExportSettings,
+  ExportField,
+  ExportFieldType,
+};
 
 export interface ColumnRoleOption {
   value: string;

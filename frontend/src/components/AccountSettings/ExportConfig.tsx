@@ -48,7 +48,8 @@ export const ExportConfig = ({
               Export Configuration
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Export settings are not configured. Enable them to configure how transaction data should be exported.
+              Export settings are not configured. Enable them to configure how transaction data
+              should be exported.
             </Typography>
             <Button variant="outlined" onClick={onEnableExportSettings} size="small">
               Enable Export Settings
@@ -71,12 +72,7 @@ export const ExportConfig = ({
         <Box>
           <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
             <Typography variant="h6">Export Configuration</Typography>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={onRemoveExportSettings}
-              size="small"
-            >
+            <Button variant="outlined" color="error" onClick={onRemoveExportSettings} size="small">
               Remove Export Settings
             </Button>
           </Box>

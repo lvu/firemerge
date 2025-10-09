@@ -1,10 +1,10 @@
-import type { StatementParserSettings, StatementFormat } from '../../../types/backend';
+import type { StatementParserSettings, StatementFormat, ColumnInfo } from '../../../types/backend';
 import { defaultCSVSettings } from '../utils/settingsUtils';
 
 export const useParserSettings = (
   updateParserSettings: (f: (settings: StatementParserSettings) => StatementParserSettings) => void,
 ) => {
-  const updateColumn = (index: number, field: keyof any, value: string | undefined) => {
+  const updateColumn = (index: number, field: keyof ColumnInfo, value: string | undefined) => {
     updateParserSettings((prev) => ({
       ...prev,
       columns: prev.columns.map((col, i) => (i === index ? { ...col, [field]: value } : col)),

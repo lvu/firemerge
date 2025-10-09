@@ -8,14 +8,24 @@ import {
   IconButton,
 } from '@mui/material';
 import { Delete } from '@mui/icons-material';
-import type { ExportField, ExportSettings } from '../../types/backend';
+import {
+  type ExportField,
+  type ExportSettings,
+  isDateExportField,
+  isConstantExportField,
+} from '../../types/backend';
 import { exportFieldTypes, dateFormats } from './utils/settingsUtils';
 
 interface ExportFieldEditorProps {
   field: ExportField;
   index: number;
   transactionType: keyof ExportSettings;
-  onUpdate: (transactionType: keyof ExportSettings, index: number, field: string, value: string) => void;
+  onUpdate: (
+    transactionType: keyof ExportSettings,
+    index: number,
+    field: string,
+    value: string,
+  ) => void;
   onRemove: (transactionType: keyof ExportSettings, index: number) => void;
 }
 
@@ -67,11 +77,11 @@ export const ExportFieldEditor = ({
           </Select>
         </FormControl>
 
-        {field.type === 'date' && (
+        {isDateExportField(field) && (
           <FormControl fullWidth>
             <InputLabel>Date Format</InputLabel>
             <Select
-              value={(field as any).format || '%d.%m.%Y'}
+              value={field.format || '%d.%m.%Y'}
               onChange={(e) => onUpdate(transactionType, index, 'format', e.target.value)}
               label="Date Format"
             >
@@ -84,21 +94,17 @@ export const ExportFieldEditor = ({
           </FormControl>
         )}
 
-        {field.type === 'constant' && (
+        {isConstantExportField(field) && (
           <TextField
             fullWidth
             label="Constant Value"
-            value={(field as any).value || ''}
+            value={field.value || ''}
             onChange={(e) => onUpdate(transactionType, index, 'value', e.target.value)}
             placeholder="e.g., USD"
           />
         )}
 
-        <IconButton
-          color="error"
-          onClick={() => onRemove(transactionType, index)}
-          size="small"
-        >
+        <IconButton color="error" onClick={() => onRemove(transactionType, index)} size="small">
           <Delete />
         </IconButton>
       </Box>

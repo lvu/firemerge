@@ -13,16 +13,23 @@ import {
   Divider,
 } from '@mui/material';
 import { ExpandMore, Input } from '@mui/icons-material';
-import type { StatementParserSettings, StatementFormat, StatementFormatSettingsCSV } from '../../types/backend';
+import type {
+  StatementParserSettings,
+  StatementFormat,
+  StatementFormatSettingsCSV,
+  RepoStatementParserSettings,
+} from '../../types/backend';
 import { columnRoles, dateFormats, encodings, separators } from './utils/settingsUtils';
 import { useParserSettings } from './hooks/useParserSettings';
 
 interface StatementParserConfigProps {
   parserSettings: StatementParserSettings | undefined;
-  configs: any[] | undefined;
+  configs: RepoStatementParserSettings[] | undefined;
   selectedConfig: string;
   isLoadingConfigs: boolean;
-  onUpdateParserSettings: (f: (settings: StatementParserSettings) => StatementParserSettings) => void;
+  onUpdateParserSettings: (
+    f: (settings: StatementParserSettings) => StatementParserSettings,
+  ) => void;
   onConfigSelect: (configLabel: string) => void;
 }
 
@@ -89,9 +96,7 @@ export const StatementParserConfig = ({
           <Typography variant="h6" sx={{ mb: 2 }}>
             File Format
           </Typography>
-          <Box
-            sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}
-          >
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
             <FormControl fullWidth>
               <InputLabel>Format</InputLabel>
               <Select
@@ -110,7 +115,9 @@ export const StatementParserConfig = ({
                 <FormControl fullWidth>
                   <InputLabel>Encoding</InputLabel>
                   <Select
-                    value={(parserSettings.format as StatementFormatSettingsCSV).encoding || 'utf-8'}
+                    value={
+                      (parserSettings.format as StatementFormatSettingsCSV).encoding || 'utf-8'
+                    }
                     onChange={(e) => updateEncoding(e.target.value)}
                     label="Encoding"
                   >
@@ -146,9 +153,7 @@ export const StatementParserConfig = ({
           <Typography variant="h6" sx={{ mb: 2 }}>
             Format Settings
           </Typography>
-          <Box
-            sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}
-          >
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
             <FormControl fullWidth>
               <InputLabel>Date Format</InputLabel>
               <Select
@@ -234,9 +239,7 @@ export const StatementParserConfig = ({
                   fullWidth
                   label="Notes Label"
                   value={column.notes_label || ''}
-                  onChange={(e) =>
-                    updateColumn(index, 'notes_label', e.target.value || undefined)
-                  }
+                  onChange={(e) => updateColumn(index, 'notes_label', e.target.value || undefined)}
                   placeholder="Optional label for notes"
                 />
 

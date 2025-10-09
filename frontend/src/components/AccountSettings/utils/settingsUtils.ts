@@ -1,5 +1,15 @@
-import type { StatementParserSettings, StatementFormatSettingsCSV, AccountSettings } from '../../../types/backend';
-import type { ColumnRoleOption, DateFormatOption, EncodingOption, SeparatorOption, ExportFieldTypeOption } from '../types/settingsTypes';
+import type {
+  StatementParserSettings,
+  StatementFormatSettingsCSV,
+  AccountSettings,
+} from '../../../types/backend';
+import type {
+  ColumnRoleOption,
+  DateFormatOption,
+  EncodingOption,
+  SeparatorOption,
+  ExportFieldTypeOption,
+} from '../types/settingsTypes';
 
 // Default parser settings
 export const defaultCSVSettings: StatementFormatSettingsCSV = {
@@ -84,11 +94,3 @@ export const createEmptyExportSettings = () => ({
   withdrawal: [],
   transfer: [],
 });
-
-export const isExportFieldDate = (field: any): field is { type: 'date'; format: string } => {
-  return field.type === 'date';
-};
-
-export const isExportFieldConstant = (field: any): field is { type: 'constant'; value: string } => {
-  return field.type === 'constant';
-};

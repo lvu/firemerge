@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
-import type { AccountSettings, StatementParserSettings, ExportSettings } from '../../../types/backend';
-import { defaultSettings, defaultParserSettings, createEmptyExportSettings } from '../utils/settingsUtils';
+import type {
+  AccountSettings,
+  StatementParserSettings,
+  ExportSettings,
+} from '../../../types/backend';
+import {
+  defaultSettings,
+  defaultParserSettings,
+  createEmptyExportSettings,
+} from '../utils/settingsUtils';
 
 export const useAccountSettingsState = (initialSettings: AccountSettings | null) => {
   const [settings, setSettings] = useState<AccountSettings>(defaultSettings);
@@ -20,7 +28,9 @@ export const useAccountSettingsState = (initialSettings: AccountSettings | null)
     setSettings(f);
   };
 
-  const updateParserSettings = (f: (settings: StatementParserSettings) => StatementParserSettings) => {
+  const updateParserSettings = (
+    f: (settings: StatementParserSettings) => StatementParserSettings,
+  ) => {
     setSettings((prev) => ({
       ...prev,
       parser_settings: f(prev.parser_settings || defaultParserSettings),
