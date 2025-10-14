@@ -2,6 +2,7 @@ import { TextField } from '@mui/material';
 import type { Transaction } from '../types/backend';
 import { searchDescriptions } from '../services/backend';
 import { useDebouncedCallback } from 'use-debounce';
+import { useRef } from 'react';
 
 export const DescriptionInput = ({
   accountId,
@@ -16,15 +17,22 @@ export const DescriptionInput = ({
   onStartQuery: () => void;
   onEndQuery: () => void;
 }) => {
+  const transactionRef = useRef(transaction);
+  const initialCandidates = useRef(transaction.candidates);
   const updateCandidates = useDebouncedCallback((value: string) => {
+    if (value.length < 3) {
+      setTransaction({ ...transactionRef.current, candidates: initialCandidates.current });
+      return;
+    }
     onStartQuery();
     searchDescriptions(accountId, value)
-      .then((candidates) => setTransaction({ ...transaction, candidates }))
+      .then((candidates) => setTransaction({ ...transactionRef.current, candidates }))
       .finally(onEndQuery);
-  }, 500);
+  }, 1000);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTransaction({ ...transaction, description: e.target.value });
+    transactionRef.current = { ...transactionRef.current, description: e.target.value };
+    setTransaction(transactionRef.current);
     updateCandidates(e.target.value);
   };
   return (
