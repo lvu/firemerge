@@ -1,3 +1,14 @@
+## 0.3.0 (2025-10-17)
+
+### Feat
+
+- support commission column
+- add statement format inferring
+
+### Fix
+
+- **frontend**: prevent flicker on description search
+
 ## 0.2.0 (2025-10-09)
 
 ### Feat
