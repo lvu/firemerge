@@ -8,6 +8,8 @@ import type {
   StatementTransaction,
   AccountSettings,
   RepoStatementParserSettings,
+  StatementFormatSettings,
+  StatementParserSettings,
 } from '../types/backend';
 import { PydanticError } from '../types/errors';
 
@@ -165,6 +167,19 @@ export async function updateTransaction(
       },
     },
   ))!;
+}
+
+export async function guessStatementParserSettings(
+  file: File,
+  formatSettings: StatementFormatSettings,
+): Promise<StatementParserSettings> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('format_settings', JSON.stringify(formatSettings));
+  return (await apiFetch<StatementParserSettings>(`/api/statement/guess-config`, undefined, {
+    method: 'POST',
+    body: formData,
+  }))!;
 }
 
 export async function getRepoStatementParserSettings(): Promise<RepoStatementParserSettings[]> {

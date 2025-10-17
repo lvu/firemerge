@@ -4,12 +4,26 @@ from collections.abc import Iterable, Sequence
 from datetime import date, datetime
 from decimal import Decimal
 from io import BytesIO, TextIOWrapper
+from logging import getLogger
 
 import openpyxl
 import pdfplumber
 from openpyxl.worksheet.worksheet import Worksheet
 
+from firemerge.model.account_settings import (
+    StatementFormatSettings,
+    StatementFormatSettingsCSV,
+    StatementFormatSettingsPDF,
+    StatementFormatSettingsXLSX,
+)
+
 ValueType = str | float | int | Decimal | datetime | date | bool | None
+
+logger = getLogger("uvicorn.error")
+
+
+class HeaderGuessError(ValueError):
+    pass
 
 
 class BaseStatementReader(ABC):
@@ -24,6 +38,40 @@ class BaseStatementReader(ABC):
         Each page is an iterable of rows, each row is a list of strings.
         """
         pass
+
+    def guess_header(self) -> Sequence[Sequence[ValueType]]:
+        """
+        Guess the header of the statement.
+
+        Returns a list of rows, first row is the header.
+        """
+        for page in self.iter_pages():
+            rows = list(page)
+            if len(rows) >= 2:
+                max_length, _, max_row_id = max(
+                    (len([cell for cell in row if cell]), -i, i)
+                    for i, row in enumerate(rows)
+                )
+                if max_length >= 3:  # There are at least 3 required columns
+                    if max_row_id == len(rows) - 1:
+                        raise HeaderGuessError("Possible header is the last row")
+                    return rows[max_row_id:]
+        raise HeaderGuessError("No possible header found")
+
+    @classmethod
+    def create(
+        cls, data: BytesIO, format_settings: StatementFormatSettings
+    ) -> "BaseStatementReader":
+        if isinstance(format_settings, StatementFormatSettingsCSV):
+            return CSVStatementReader(
+                data, format_settings.separator, format_settings.encoding
+            )
+        elif isinstance(format_settings, StatementFormatSettingsXLSX):
+            return XSLXStatementReader(data)
+        elif isinstance(format_settings, StatementFormatSettingsPDF):
+            return PDFStatementReader(data)
+        else:
+            raise ValueError("Invalid format settings")
 
 
 class CSVStatementReader(BaseStatementReader):

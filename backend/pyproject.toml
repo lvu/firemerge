@@ -19,6 +19,7 @@ dependencies = [
     "redis ~= 5.0.0",
     "uvicorn[standard] ~= 0.24.0",
     "pyyaml>=6.0.2",
+    "hi-dateinfer>=0.4.6",
 ]
 
 [dependency-groups]
@@ -47,7 +48,7 @@ plugins = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["thefuzz.*", "aiocache.*"]
+module = ["thefuzz.*", "aiocache.*", "hidateinfer.*"]
 follow_untyped_imports = true
 
 [tool.taskipy.tasks]

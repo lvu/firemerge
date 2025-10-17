@@ -4,24 +4,24 @@ from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from math import copysign
+from string import digits
 from zoneinfo import ZoneInfo
+
+from hidateinfer import infer as infer_date
 
 from firemerge.model.account_settings import (
     AccountSettings,
+    ColumnInfo,
     ColumnRole,
-    StatementFormatSettingsCSV,
-    StatementFormatSettingsPDF,
-    StatementFormatSettingsXLSX,
+    GuessedStatementParserSettings,
+    StatementFormatSettings,
     StatementParserSettings,
 )
 from firemerge.model.api import StatementTransaction
 from firemerge.model.common import Account, Currency, Money
 from firemerge.statement.reader import (
     BaseStatementReader,
-    CSVStatementReader,
-    PDFStatementReader,
     ValueType,
-    XSLXStatementReader,
 )
 
 logger = logging.getLogger("uvicorn.error")
@@ -52,22 +52,12 @@ class StatementParser:
             c.role: c for c in self.settings.parser_settings.columns if c.role
         }
 
-    def _create_reader(self) -> BaseStatementReader:
-        if isinstance(self.parser_settings.format, StatementFormatSettingsCSV):
-            return CSVStatementReader(
-                self.data,
-                delimiter=self.parser_settings.format.separator,
-                encoding=self.parser_settings.format.encoding,
-            )
-        if isinstance(self.parser_settings.format, StatementFormatSettingsXLSX):
-            return XSLXStatementReader(self.data)
-        if isinstance(self.parser_settings.format, StatementFormatSettingsPDF):
-            return PDFStatementReader(self.data)
-        raise ValueError("Invalid format")
-
     def _iter_rows(self) -> Iterable[Sequence[ValueType]]:
         found = False
-        for page in self._create_reader().iter_pages():
+        assert self.settings.parser_settings is not None
+        for page in BaseStatementReader.create(
+            self.data, self.settings.parser_settings.format
+        ).iter_pages():
             page_iter = iter(page)
             for row in page_iter:
                 # Allow for header to be in the middle of the page
@@ -89,30 +79,13 @@ class StatementParser:
             yield transaction
 
     def _parse_date(self, value: ValueType) -> datetime:
-        if isinstance(value, datetime):
-            result = value
-        elif isinstance(value, date):
-            result = datetime.combine(value, time.min)
-        elif isinstance(value, str):
-            result = datetime.strptime(value, self.parser_settings.date_format)
-        else:
-            raise ValueError(f"Invalid date: {value}")
+        result = _parse_date(value, self.parser_settings.date_format)
         if result.tzinfo is None:
             result = result.replace(tzinfo=self.tz)
         return result
 
     def _parse_amount(self, value: ValueType) -> Money:
-        try:
-            if isinstance(value, int | float | Decimal):
-                return Money(Decimal(value).quantize(Decimal("0.01")))
-            if isinstance(value, str):
-                if self.parser_settings.decimal_separator:
-                    value = value.replace(self.parser_settings.decimal_separator, ".")
-                return Money(value.replace(" ", ""))
-        except InvalidOperation as e:
-            raise ValueError(f"Invalid amount: {value}") from e
-
-        raise ValueError(f"Invalid amount: {value}")
+        return _parse_amount(value, self.parser_settings.decimal_separator)
 
     def _parse_rows(
         self, rows: Iterable[Sequence[ValueType]]
@@ -210,3 +183,94 @@ class StatementParser:
             foreign_currency_code=foreign_currency_code,
             notes="\n".join(notes) if notes else None,
         )
+
+
+def guess_parser_settings(
+    data: BytesIO, format_settings: StatementFormatSettings
+) -> GuessedStatementParserSettings:
+    def date_info(idx: int) -> tuple[str | None, float]:
+        """Return the date format and the percentage of valid dates in the column."""
+        values = [row[idx] for row in rows if row is not None]
+        if not values:
+            return None, 0
+        str_values = [val for val in values if isinstance(val, str)]
+        fmt = None if not str_values else infer_date(str_values)
+        num_dates = 0
+        for value in values:
+            try:
+                _parse_date(value, fmt or "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                pass
+            else:
+                num_dates += 1
+        return fmt, num_dates / len(values)
+
+    def decimal_info() -> tuple[int | None, str | None]:
+        for col_idx in range(len(header)):
+            values = [row[col_idx] for row in rows]
+            chars = set()
+            for value in values:
+                if isinstance(value, str):
+                    chars |= set(value)
+            chars = chars - set(digits)
+            decimal_separator = chars.pop() if chars else None
+            for value in values:
+                try:
+                    _parse_amount(value, decimal_separator)
+                except ValueError:
+                    break
+            else:
+                return col_idx, decimal_separator
+        return None, None
+
+    reader = BaseStatementReader.create(data, format_settings)
+    header, *rows = reader.guess_header()
+
+    columns = [ColumnInfo(name=s, role=None, index=i) for i, s in enumerate(header)]
+
+    # guess date column and format
+    date_format = None
+    (date_col_fmt, date_col_pct), date_col_idx = max(
+        ((date_info(i), i) for i in range(len(header))), key=lambda x: x[0][1]
+    )
+    if date_col_pct > 0.5:
+        date_format = date_col_fmt
+        columns[date_col_idx].role = ColumnRole.DATE
+
+    # guess amount column and decimal separator
+    amount_col_idx, decimal_separator = decimal_info()
+    if amount_col_idx is not None:
+        columns[amount_col_idx].role = ColumnRole.AMOUNT
+
+    return GuessedStatementParserSettings(
+        date_format=date_format or "%Y-%m-%d %H:%M:%S",
+        decimal_separator=decimal_separator,
+        columns=columns,
+        format=format_settings,
+    )
+
+
+def _parse_date(value: ValueType, date_format: str) -> datetime:
+    if isinstance(value, datetime):
+        result = value
+    elif isinstance(value, date):
+        result = datetime.combine(value, time.min)
+    elif isinstance(value, str):
+        result = datetime.strptime(value, date_format)
+    else:
+        raise ValueError(f"Invalid date: {value}")
+    return result
+
+
+def _parse_amount(value: ValueType, decimal_separator: str | None) -> Money:
+    try:
+        if isinstance(value, int | float | Decimal):
+            return Money(Decimal(value).quantize(Decimal("0.01")))
+        if isinstance(value, str):
+            if decimal_separator:
+                value = value.replace(decimal_separator, ".")
+            return Money(value.replace(" ", ""))
+    except InvalidOperation as e:
+        raise ValueError(f"Invalid amount: {value}") from e
+
+    raise ValueError(f"Invalid amount: {value}")

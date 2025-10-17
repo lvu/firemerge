@@ -3,14 +3,19 @@ from io import BytesIO
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, HTTPException, UploadFile
+from fastapi import APIRouter, Form, HTTPException, UploadFile
 from fastapi.param_functions import Query
+from pydantic import TypeAdapter, ValidationError
 
 from firemerge.api.deps import FireflyClientDep
-from firemerge.model.account_settings import RepoStatementParserSettings
+from firemerge.model.account_settings import (
+    GuessedStatementParserSettings,
+    RepoStatementParserSettings,
+    StatementFormatSettings,
+)
 from firemerge.model.api import StatementTransaction
 from firemerge.statement.config_repo import load_configs
-from firemerge.statement.parser import StatementParser
+from firemerge.statement.parser import StatementParser, guess_parser_settings
 
 logger = logging.getLogger("uvicorn.error")
 router = APIRouter(prefix="/statement")
@@ -57,6 +62,27 @@ async def parse_statement(
     except Exception as e:
         logger.exception("Parse failed")
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
+
+
+@router.post("/guess-config")
+async def guess_config(
+    file: Annotated[UploadFile, Form(...)],
+    format_settings_str: Annotated[
+        str, Form(description="JSON format settings", alias="format_settings")
+    ],
+) -> GuessedStatementParserSettings:
+    content = BytesIO(await file.read())
+    try:
+        format_settings: StatementFormatSettings = TypeAdapter(
+            StatementFormatSettings
+        ).validate_json(format_settings_str)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=e.errors()) from e
+    try:
+        return guess_parser_settings(content, format_settings)
+    except Exception as e:
+        logger.exception("Guess config failed", exc_info=True)
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
 @router.get("/configs")

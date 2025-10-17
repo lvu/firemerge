@@ -11,6 +11,7 @@ import {
   TextField,
   Button,
   Divider,
+  Alert,
 } from '@mui/material';
 import { ExpandMore, Input } from '@mui/icons-material';
 import type {
@@ -21,6 +22,9 @@ import type {
 } from '../../types/backend';
 import { columnRoles, dateFormats, encodings, separators } from './utils/settingsUtils';
 import { useParserSettings } from './hooks/useParserSettings';
+import { useState } from 'react';
+import { guessStatementParserSettings } from '../../services/backend';
+import { useDropzone } from 'react-dropzone';
 
 interface StatementParserConfigProps {
   parserSettings: StatementParserSettings | undefined;
@@ -52,9 +56,34 @@ export const StatementParserConfig = ({
     updateDecimalSeparator,
   } = useParserSettings(onUpdateParserSettings);
 
+  const [file, setFile] = useState<File | null>(null);
+  const [guessError, setGuessError] = useState<string | null>(null);
+
+  const { getRootProps, getInputProps } = useDropzone({
+    onDrop: (acceptedFiles) => {
+      for (const file of acceptedFiles) {
+        setFile(file);
+      }
+    },
+  });
+
   if (!parserSettings) {
     return null;
   }
+
+  const guessParserSettings = async () => {
+    setGuessError(null);
+    if (!file) return;
+    try {
+      const settings = await guessStatementParserSettings(file, parserSettings.format);
+      onUpdateParserSettings((prev) => ({
+        ...prev,
+        ...settings,
+      }));
+    } catch (error) {
+      setGuessError(error instanceof Error ? error.message : String(error));
+    }
+  };
 
   return (
     <Accordion defaultExpanded>
@@ -146,6 +175,40 @@ export const StatementParserConfig = ({
               </>
             )}
           </Box>
+        </Box>
+
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            Guess Parser Settings
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <FormControl fullWidth>
+              <Box
+                {...getRootProps()}
+                sx={{
+                  border: '2px dashed',
+                  borderColor: 'primary.main',
+                  borderRadius: 2,
+                  p: 2,
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                {file ? (
+                  <Typography variant="body2">{file.name}</Typography>
+                ) : (
+                  <Typography variant="h6">Upload sample statement</Typography>
+                )}
+                <input {...getInputProps()} />
+              </Box>
+            </FormControl>
+            {file && (
+              <Button variant="outlined" onClick={guessParserSettings} size="small">
+                Guess Parser Settings
+              </Button>
+            )}
+          </Box>
+          {guessError && <Alert severity="error">{guessError}</Alert>}
         </Box>
 
         {/* Date and Number Format Settings */}

@@ -55,7 +55,7 @@ class ColumnInfo(BaseModel):
     index: int
 
 
-class StatementParserSettings(BaseModel):
+class GuessedStatementParserSettings(BaseModel):
     columns: list[ColumnInfo]
     format: StatementFormatSettings
     date_format: str = "%Y-%m-%d %H:%M:%S"
@@ -69,7 +69,9 @@ class StatementParserSettings(BaseModel):
         return {
             **data,
             "columns": [
-                {
+                column
+                if isinstance(column, ColumnInfo)
+                else {
                     **column,
                     "index": index,
                 }
@@ -77,6 +79,8 @@ class StatementParserSettings(BaseModel):
             ],
         }
 
+
+class StatementParserSettings(GuessedStatementParserSettings):
     @model_validator(mode="after")
     def validate_columns(self) -> Self:
         role_counts = Counter(
