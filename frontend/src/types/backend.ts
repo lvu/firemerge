@@ -43,6 +43,7 @@ export type ColumnRole =
   | 'iban'
   | 'currency_code'
   | 'amount'
+  | 'commission'
   | 'amount_debit'
   | 'amount_credit'
   | 'foreign_currency_code'

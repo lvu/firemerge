@@ -176,7 +176,7 @@ export async function guessStatementParserSettings(
   const formData = new FormData();
   formData.append('file', file);
   formData.append('format_settings', JSON.stringify(formatSettings));
-  return (await apiFetch<StatementParserSettings>(`/api/statement/guess-config`, undefined, {
+  return (await apiFetch<StatementParserSettings>(`/api/statement/guess-parser-settings`, undefined, {
     method: 'POST',
     body: formData,
   }))!;

@@ -37,6 +37,7 @@ export const columnRoles: ColumnRoleOption[] = [
   { value: 'iban', label: 'IBAN' },
   { value: 'currency_code', label: 'Currency Code' },
   { value: 'amount', label: 'Amount' },
+  { value: 'commission', label: 'Commission Amount' },
   { value: 'amount_debit', label: 'Amount Debit' },
   { value: 'amount_credit', label: 'Amount Credit' },
   { value: 'foreign_currency_code', label: 'Foreign Currency Code' },

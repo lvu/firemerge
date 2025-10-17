@@ -64,8 +64,8 @@ async def parse_statement(
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 
-@router.post("/guess-config")
-async def guess_config(
+@router.post("/guess-parser-settings")
+async def guess_parser_settings_endpoint(
     file: Annotated[UploadFile, Form(...)],
     format_settings_str: Annotated[
         str, Form(description="JSON format settings", alias="format_settings")

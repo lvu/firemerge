@@ -119,15 +119,22 @@ class StatementParser:
 
     def _get_amount(self, row: Sequence[ValueType]) -> Money:
         if amount_col := self.role_cols.get(ColumnRole.AMOUNT):
-            return self._parse_amount(row[amount_col.index])
-
-        debit = row[self.role_cols[ColumnRole.AMOUNT_DEBIT].index]
-        credit = row[self.role_cols[ColumnRole.AMOUNT_CREDIT].index]
-        if debit and credit:
-            raise ValueError("Both debit and credit are present")
-        if debit:
-            return -self._parse_amount(debit)
-        return self._parse_amount(credit)
+            result = self._parse_amount(row[amount_col.index])
+        else:
+            debit = row[self.role_cols[ColumnRole.AMOUNT_DEBIT].index]
+            credit = row[self.role_cols[ColumnRole.AMOUNT_CREDIT].index]
+            if debit and credit:
+                raise ValueError("Both debit and credit are present")
+            result = -self._parse_amount(debit) if debit else self._parse_amount(credit)
+        if commission_col := self.role_cols.get(ColumnRole.COMMISION):
+            # Probably not correct for debit/credit rows
+            try:
+                commission = self._parse_amount(row[commission_col.index])
+            except ValueError:
+                pass
+            else:
+                result += commission * (1 if result > 0 else -1)
+        return result
 
     def _get_notes(self, row: Sequence[ValueType], suffix: str = "") -> list[str]:
         return [
@@ -167,14 +174,12 @@ class StatementParser:
         if foreign_amount is None and (
             foreign_currency_col := self.role_cols.get(ColumnRole.FOREIGN_CURRENCY_CODE)
         ):
-            if (
-                fc_code := row[foreign_currency_col.index]
-            ) != self.primary_currency.code:
+            fc_code = row[foreign_currency_col.index]
+            if fc_code and fc_code != self.primary_currency.code:
                 foreign_amount = self._parse_amount(
                     row[self.role_cols[ColumnRole.FOREIGN_AMOUNT].index]
                 )
                 foreign_currency_code = fc_code
-
         return StatementTransaction(
             name=row[self.role_cols[ColumnRole.NAME].index],
             date=transaction_date,

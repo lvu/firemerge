@@ -41,6 +41,7 @@ class ColumnRole(Enum):
     IBAN = "iban"
     CURRENCY_CODE = "currency_code"
     AMOUNT = "amount"
+    COMMISION = "commission"
     AMOUNT_DEBIT = "amount_debit"
     AMOUNT_CREDIT = "amount_credit"
     FOREIGN_CURRENCY_CODE = "foreign_currency_code"
