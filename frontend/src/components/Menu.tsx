@@ -22,6 +22,7 @@ import { StatementUploadDialog } from './Statement';
 import { StatementExportDialog } from './StatementExport';
 import { AccountSettingsDialog } from './AccountSettings';
 import { useRefresh } from '../hooks/backend';
+import { ColorThemeSelector } from './ColorTheme';
 
 const MenuItem = ({
   icon,
@@ -95,6 +96,7 @@ export const MenuDrawer = ({
           width: drawerWidth,
         }}
       >
+        <ColorThemeSelector />
         <Typography variant="h6" component="h2" sx={{ p: 2 }}>
           Actions
         </Typography>
