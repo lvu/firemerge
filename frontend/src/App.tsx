@@ -17,7 +17,7 @@ function App() {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={colorTheme}>
-          <CssBaseline/>
+          <CssBaseline />
           <Box>
             <Main />
             <GlobalLoader />

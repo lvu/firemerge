@@ -32,9 +32,7 @@ export function ColorThemeSelector() {
           name="theme-toggle"
           row
           value={mode}
-          onChange={(event) =>
-            setMode(event.target.value as 'system' | 'light' | 'dark')
-          }
+          onChange={(event) => setMode(event.target.value as 'system' | 'light' | 'dark')}
         >
           <FormControlLabel value="system" control={<Radio />} label="System" />
           <FormControlLabel value="light" control={<Radio />} label="Light" />

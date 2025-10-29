@@ -105,6 +105,7 @@ class StatementParser:
             join_rows = None
 
         for row, next_row in pairwise(chain(rows, [None])):
+            assert row is not None  # only next_row can be None
             if iban_col and row[iban_col.index] != self.account.iban:
                 continue
 
@@ -118,11 +119,19 @@ class StatementParser:
             else:
                 transaction = self._parse_row(row)
 
-            if next_row and (remaining_balance_col := self.role_cols.get(ColumnRole.REMAINING_BALANCE)):
+            if next_row and (
+                remaining_balance_col := self.role_cols.get(
+                    ColumnRole.REMAINING_BALANCE
+                )
+            ):
                 # we assume that the rows are in reverse chronological order
-                next_remaining_balance = self._parse_amount(next_row[remaining_balance_col.index])
+                next_remaining_balance = self._parse_amount(
+                    next_row[remaining_balance_col.index]
+                )
                 remaining_balance = self._parse_amount(row[remaining_balance_col.index])
-                transaction.amount = transaction.amount.copy_sign(remaining_balance - next_remaining_balance)
+                transaction.amount = transaction.amount.copy_sign(
+                    remaining_balance - next_remaining_balance
+                )
 
             yield transaction
 
