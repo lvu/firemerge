@@ -47,6 +47,7 @@ class ColumnRole(Enum):
     FOREIGN_CURRENCY_CODE = "foreign_currency_code"
     FOREIGN_AMOUNT = "foreign_amount"
     DOC_NUMBER = "doc_number"
+    REMAINING_BALANCE = "remaining_balance"
 
 
 class ColumnInfo(BaseModel):

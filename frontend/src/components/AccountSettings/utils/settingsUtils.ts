@@ -43,6 +43,7 @@ export const columnRoles: ColumnRoleOption[] = [
   { value: 'foreign_currency_code', label: 'Foreign Currency Code' },
   { value: 'foreign_amount', label: 'Foreign Amount' },
   { value: 'doc_number', label: 'Document Number' },
+  { value: 'remaining_balance', label: 'Remaining Balance' },
 ];
 
 // Date format options

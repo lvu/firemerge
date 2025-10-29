@@ -48,7 +48,8 @@ export type ColumnRole =
   | 'amount_credit'
   | 'foreign_currency_code'
   | 'foreign_amount'
-  | 'doc_number';
+  | 'doc_number'
+  | 'remaining_balance';
 
 export type ColumnInfo = {
   name: string;

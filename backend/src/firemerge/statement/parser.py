@@ -3,6 +3,7 @@ from collections.abc import Iterable, Sequence
 from datetime import date, datetime, time
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
+from itertools import chain, pairwise
 from math import copysign
 from string import digits
 from zoneinfo import ZoneInfo
@@ -103,7 +104,7 @@ class StatementParser:
         else:
             join_rows = None
 
-        for row in rows:
+        for row, next_row in pairwise(chain(rows, [None])):
             if iban_col and row[iban_col.index] != self.account.iban:
                 continue
 
@@ -113,9 +114,17 @@ class StatementParser:
                 and (doc_number := row[join_col.index])
                 and (join_row := join_rows.get(doc_number))
             ):
-                yield self._parse_row(row, join_row)
+                transaction = self._parse_row(row, join_row)
             else:
-                yield self._parse_row(row)
+                transaction = self._parse_row(row)
+
+            if next_row and (remaining_balance_col := self.role_cols.get(ColumnRole.REMAINING_BALANCE)):
+                # we assume that the rows are in reverse chronological order
+                next_remaining_balance = self._parse_amount(next_row[remaining_balance_col.index])
+                remaining_balance = self._parse_amount(row[remaining_balance_col.index])
+                transaction.amount = transaction.amount.copy_sign(remaining_balance - next_remaining_balance)
+
+            yield transaction
 
     def _get_amount(self, row: Sequence[ValueType]) -> Money:
         if amount_col := self.role_cols.get(ColumnRole.AMOUNT):
