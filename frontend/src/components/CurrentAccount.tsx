@@ -1,5 +1,5 @@
 import type { Account } from '../types/backend';
-import { Typography, MenuList, Box, ListItemButton, ListItemText } from '@mui/material';
+import { Typography, MenuList, Box, ListItemButton, ListItemText, Alert } from '@mui/material';
 import { useAccounts } from '../hooks/backend';
 
 export const CurrentAccountChoice = ({
@@ -7,7 +7,10 @@ export const CurrentAccountChoice = ({
 }: {
   setCurrentAccount: (account: Account | null) => void;
 }) => {
-  const { data: accounts } = useAccounts();
+  const { data: accounts, error: accountsError } = useAccounts();
+  if (accountsError) {
+    return <Alert severity="error">Error: {accountsError.message}</Alert>;
+  }
   const assetAccounts = Object.values(accounts ?? {})
     .filter((a) => a.type === 'asset')
     .sort((a, b) => a.id - b.id);
