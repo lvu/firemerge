@@ -147,10 +147,12 @@ class FireflyClient:
 
     @async_collect
     async def get_accounts(self) -> AsyncIterable[Account]:
-        accounts = await self._json_request(
-            "v1/autocomplete/accounts", {"limit": MAX_ACCOUNTS, "query": ""}
+        response = await self._json_request(
+            "v1/accounts", {"limit": MAX_ACCOUNTS}
         )
+        accounts = response["data"]
         for account_info in accounts:
+            account_info = {**account_info["attributes"], "id": account_info["id"]}
             if account_info["type"] not in self.account_type_map:
                 try:
                     account = await self.get_account(account_info["id"])
