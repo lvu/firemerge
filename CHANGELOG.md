@@ -1,3 +1,15 @@
+## 0.5.0 (2025-11-04)
+
+### Feat
+
+- **frontend**: add option to save all annotated transactions
+- support op sign inference from remaining balance
+
+### Fix
+
+- **backend**: use proper accounts api instead of autocomplete
+- **frontend**: display errors on accounts loading
+
 ## 0.4.0 (2025-10-27)
 
 ### Feat
