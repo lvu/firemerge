@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getAccounts,
   getCategories,
@@ -22,6 +22,31 @@ import type {
   TransactionUpdateResponse,
 } from '../types/backend';
 
+const handleTransactionUpdateSuccess = (
+  queryClient: QueryClient,
+  accountId: number,
+  transactions: Transaction[],
+  accounts: Record<number, Account>,
+  response: TransactionUpdateResponse,
+  originalId: string,
+) => {
+  const { transaction: updated_transaction, account: updated_account } = response;
+  console.log('updated_transaction', updated_transaction);
+  if (transactions !== undefined) {
+    queryClient.setQueryData(
+      ['global', 'transactions', accountId],
+      transactions?.map((t) => (t.id === originalId ? updated_transaction : t)),
+    );
+  }
+  if (updated_account && accounts !== undefined) {
+    queryClient.setQueryData(['global', 'accounts'], {
+      ...accounts,
+      [accountId!]: updated_account,
+    });
+  }
+  queryClient.invalidateQueries({ queryKey: ['account_details', accountId] });
+}
+
 export const useUpdateTransaction = (
   accountId: number | undefined,
   transaction: Transaction,
@@ -41,20 +66,7 @@ export const useUpdateTransaction = (
         state: transaction.state === 'enriched' ? 'new' : transaction.state,
       }),
     onSuccess: (data: TransactionUpdateResponse) => {
-      const { transaction: updated_transaction, account: updated_account } = data;
-      if (transactions !== undefined) {
-        queryClient.setQueryData(
-          ['global', 'transactions', accountId],
-          transactions?.map((t) => (t.id === transaction.id ? updated_transaction : t)),
-        );
-      }
-      if (updated_account && accounts !== undefined) {
-        queryClient.setQueryData(['global', 'accounts'], {
-          ...accounts,
-          [accountId!]: updated_account,
-        });
-      }
-      queryClient.invalidateQueries({ queryKey: ['account_details', accountId] });
+      handleTransactionUpdateSuccess(queryClient, accountId!, transactions!, accounts!, data, transaction.id);
       onSuccess?.();
     },
   });
@@ -151,5 +163,33 @@ export const useRepoStatementParserSettings = () => {
     queryKey: ['global', 'repo_statement_parser_settings'],
     queryFn: getRepoStatementParserSettings,
     staleTime: Infinity,
+  });
+};
+
+export const useBatchUpdateTransactions = (
+  accountId: number | undefined,
+  transactions: Transaction[],
+  onProgress?: (total: number, completed: number) => void,
+  onSuccess?: () => void,
+  onError?: (error: Error) => void,
+) => {
+  const queryClient = useQueryClient();
+  const accounts = queryClient.getQueryData<Record<number, Account>>(['global', 'accounts']);
+  const annotatedTransactions = transactions.filter((t) => t.state === 'annotated');
+  return useMutation({
+    mutationFn: async () => {
+      if (!accountId) throw new Error('Account ID is required');
+
+      for (let i = 0; i < annotatedTransactions.length; i++) {
+        await updateTransaction(accountId!, annotatedTransactions[i]);
+        handleTransactionUpdateSuccess(queryClient, accountId!, transactions, accounts!, {
+          transaction: annotatedTransactions[i],
+          account: accounts?.[accountId!],
+        }, annotatedTransactions[i].id);
+        onProgress?.(annotatedTransactions.length, i + 1);
+      }
+    },
+    onSuccess: onSuccess,
+    onError: (error) => onError?.(error as Error),
   });
 };

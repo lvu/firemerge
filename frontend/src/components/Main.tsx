@@ -6,12 +6,18 @@ import { StatementUpload } from './Statement';
 import { Header } from './Header';
 import { MenuDrawer } from './Menu';
 import { useCurrentAccount, useStatement } from '../hooks/sessionState';
+import { useTransactions } from '../hooks/backend';
 
 export const Main = () => {
   const [statement, setStatement] = useStatement();
   const [currentAccount, setCurrentAccount] = useCurrentAccount(setStatement);
   const [menuOpen, setMenuOpen] = useState(false);
   const [showMatched, setShowMatched] = useState(true);
+
+  const { data: transactions } = useTransactions(
+    currentAccount?.id,
+    statement ?? undefined
+  );
 
   return (
     <>
@@ -30,6 +36,7 @@ export const Main = () => {
           setStatement={setStatement}
           showMatched={showMatched}
           setShowMatched={setShowMatched}
+          transactions={transactions ?? null}
         />
         {!currentAccount && <CurrentAccountChoice setCurrentAccount={setCurrentAccount} />}
         {currentAccount && statement === null && (
