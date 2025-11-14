@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Annotated, List, Optional
 
 from fastapi import APIRouter, Body, HTTPException, Query, Response
@@ -61,7 +61,7 @@ async def get_taxer_statement(
     }
 
     transactions = await firefly_client.get_transactions(
-        account_id, start_date_dt.date()
+        account_id, start_date_dt.date(), date.today() + timedelta(days=1)
     )
     account_settings = await firefly_client.get_account_settings(account_id)
     if account_settings is None:

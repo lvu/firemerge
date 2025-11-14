@@ -29,8 +29,11 @@ async def get_transactions(
     start_date = min(
         (tr.date.date() for tr in statement), default=date.today()
     ) - timedelta(days=365)
+    end_date = max(
+        (tr.date.date() for tr in statement), default=date.today()
+    ) + timedelta(days=1)
     return merge_transactions(
-        await _get_transactions(account_id, firefly_client, start_date),
+        await _get_transactions(account_id, firefly_client, start_date, end_date),
         statement,
         await firefly_client.get_currencies(),
         account_id,
@@ -155,11 +158,14 @@ async def _get_transactions(
     account_id: int,
     firefly_client: FireflyClient,
     start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
 ) -> AsyncIterable[Transaction]:
     """Get transactions from Firefly III for the given account and date range"""
     if start_date is None:
         start_date = date.today() - timedelta(days=365)
-    for tr in await firefly_client.get_transactions(account_id, start_date):
+    if end_date is None:
+        end_date = date.today() + timedelta(days=1)
+    for tr in await firefly_client.get_transactions(account_id, start_date, end_date):
         if (
             tr.type is TransactionType.Transfer
             and tr.destination_id == account_id

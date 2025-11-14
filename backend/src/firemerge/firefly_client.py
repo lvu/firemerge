@@ -105,11 +105,15 @@ class FireflyClient:
 
     @async_collect
     async def get_transactions(
-        self, account_id: int, start: date
+        self, account_id: int, start: date, end: date
     ) -> AsyncIterable[Transaction]:
         async for row in self._paging_get(
             f"v1/accounts/{account_id}/transactions",
-            {"start": start.strftime("%Y-%m-%d"), "limit": 2000},
+            {
+                "start": start.strftime("%Y-%m-%d"),
+                "end": end.strftime("%Y-%m-%d"),
+                "limit": 2000,
+            },
         ):
             for trans in row["attributes"]["transactions"]:
                 yield Transaction.model_validate(
@@ -147,9 +151,7 @@ class FireflyClient:
 
     @async_collect
     async def get_accounts(self) -> AsyncIterable[Account]:
-        response = await self._json_request(
-            "v1/accounts", {"limit": MAX_ACCOUNTS}
-        )
+        response = await self._json_request("v1/accounts", {"limit": MAX_ACCOUNTS})
         accounts = response["data"]
         for account_info in accounts:
             account_info = {**account_info["attributes"], "id": account_info["id"]}
