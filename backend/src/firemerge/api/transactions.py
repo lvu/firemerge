@@ -176,4 +176,6 @@ async def _get_transactions(
                 tr.foreign_currency_id,
                 tr.currency_id,
             )
-        yield tr
+        # Skip reconciliation transactions since they are not relevant to the user
+        if tr.type is not TransactionType.Reconciliation:
+            yield tr
