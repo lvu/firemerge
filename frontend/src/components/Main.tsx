@@ -14,10 +14,7 @@ export const Main = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showMatched, setShowMatched] = useState(true);
 
-  const { data: transactions } = useTransactions(
-    currentAccount?.id,
-    statement ?? undefined
-  );
+  const { data: transactions } = useTransactions(currentAccount?.id, statement ?? undefined);
 
   return (
     <>

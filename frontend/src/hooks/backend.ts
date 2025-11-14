@@ -45,7 +45,7 @@ const handleTransactionUpdateSuccess = (
     });
   }
   queryClient.invalidateQueries({ queryKey: ['account_details', accountId] });
-}
+};
 
 export const useUpdateTransaction = (
   accountId: number | undefined,
@@ -66,7 +66,14 @@ export const useUpdateTransaction = (
         state: transaction.state === 'enriched' ? 'new' : transaction.state,
       }),
     onSuccess: (data: TransactionUpdateResponse) => {
-      handleTransactionUpdateSuccess(queryClient, accountId!, transactions!, accounts!, data, transaction.id);
+      handleTransactionUpdateSuccess(
+        queryClient,
+        accountId!,
+        transactions!,
+        accounts!,
+        data,
+        transaction.id,
+      );
       onSuccess?.();
     },
   });
@@ -182,10 +189,17 @@ export const useBatchUpdateTransactions = (
 
       for (let i = 0; i < annotatedTransactions.length; i++) {
         await updateTransaction(accountId!, annotatedTransactions[i]);
-        handleTransactionUpdateSuccess(queryClient, accountId!, transactions, accounts!, {
-          transaction: annotatedTransactions[i],
-          account: accounts?.[accountId!],
-        }, annotatedTransactions[i].id);
+        handleTransactionUpdateSuccess(
+          queryClient,
+          accountId!,
+          transactions,
+          accounts!,
+          {
+            transaction: annotatedTransactions[i],
+            account: accounts?.[accountId!],
+          },
+          annotatedTransactions[i].id,
+        );
         onProgress?.(annotatedTransactions.length, i + 1);
       }
     },
