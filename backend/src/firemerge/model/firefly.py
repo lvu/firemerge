@@ -20,6 +20,7 @@ class TransactionType(Enum):
     Transfer = "transfer"
     Deposit = "deposit"
     Reconciliation = "reconciliation"
+    OpeningBalance = "opening balance"
 
 
 class Transaction(BaseModel):
