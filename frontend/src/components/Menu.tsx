@@ -74,9 +74,7 @@ export const MenuDrawer = ({
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
   const drawerWidth = '25rem';
 
-  const annotatedCount = transactions?.filter(
-    (t) => t.state === 'annotated'
-  ).length || 0;
+  const annotatedCount = transactions?.filter((t) => t.state === 'annotated').length || 0;
 
   const showSnackbarMessage = (message: string, severity: 'success' | 'error') => {
     setSnackbarOpen(false);
@@ -87,10 +85,7 @@ export const MenuDrawer = ({
     }, 10);
   };
 
-  const {
-    mutate: batchSaveTransactions,
-    error: batchSaveError,
-  } = useBatchUpdateTransactions(
+  const { mutate: batchSaveTransactions, error: batchSaveError } = useBatchUpdateTransactions(
     currentAccount?.id,
     transactions || [],
     (total, completed) => {
@@ -103,7 +98,7 @@ export const MenuDrawer = ({
     (error) => {
       showSnackbarMessage(`Error saving transactions: ${error.message}`, 'error');
       onClose();
-    }
+    },
   );
 
   // Handle batch save errors
@@ -112,7 +107,7 @@ export const MenuDrawer = ({
       showSnackbarMessage(`Error saving transactions: ${batchSaveError.message}`, 'error');
       onClose();
     }
-  }, [batchSaveError]);
+  }, [batchSaveError, onClose]);
   return (
     <>
       {currentAccount && (
