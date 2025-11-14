@@ -1,3 +1,11 @@
+## 0.5.1 (2025-11-14)
+
+### Fix
+
+- **frontend**: add missing effect dependency
+- **backend**: filter out reconcilliation transactions
+- **backend**: add end date to transactions request (upstream API change)
+
 ## 0.5.0 (2025-11-04)
 
 ### Feat
