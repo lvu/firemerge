@@ -1,3 +1,12 @@
+## 0.5.2 (2025-11-14)
+
+### Fix
+
+- **backend**: do not fial on opening balance transactions
+- **frontend**: smoother transacion title input
+- **backend**: filter out all reconciliation transactions
+- **frontend**: switch start and end date in the app bar
+
 ## 0.5.1 (2025-11-14)
 
 ### Fix
