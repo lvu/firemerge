@@ -12,7 +12,7 @@ from .model.api import (
     TransactionState,
 )
 from .model.common import Currency
-from .model.firefly import Transaction
+from .model.firefly import Transaction, TransactionType
 
 MAX_CANDIDATES = 10
 SCORE_CUTOFF = 93
@@ -96,6 +96,7 @@ def merge_transactions(
     currencies: list[Currency],
     current_account_id: int,
 ) -> list[DisplayTransaction]:
+    transactions = [tr for tr in transactions if tr.type != TransactionType.Reconciliation]
     candidates = deduplicate_candidates(
         tr.as_candidate(current_account_id) for tr in transactions
     )

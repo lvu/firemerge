@@ -21,7 +21,6 @@ class DisplayTransactionType(Enum):
     TransferIn = "transfer-in"
     TransferOut = "transfer-out"
     Deposit = "deposit"
-    Reconciliation = "reconciliation"
 
 
 class TransactionCandidate(BaseModel):
