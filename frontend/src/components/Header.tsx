@@ -37,8 +37,8 @@ export const Header = ({
       ? undefined
       : {
           num_transactions: statement.length,
-          start_date: statement[0]?.date,
-          end_date: statement[statement.length - 1]?.date,
+          start_date: statement[statement.length - 1]?.date,
+          end_date: statement[0]?.date,
         };
 
   const showStatementInfo = !scrollTrigger || !isMobile;
