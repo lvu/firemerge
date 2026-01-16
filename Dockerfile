@@ -1,5 +1,7 @@
 FROM node:22-slim AS frontend-builder
 
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
@@ -19,6 +21,7 @@ RUN --mount=type=cache,id=apt-cache,target=/var/cache/apt,sharing=locked \
     set -exu && \
     apt-get update -qq && \
     DEBIAN_FRONTEND=noninteractive \
+    apt-get upgrade -y -qq && \
     apt-get -y install -y -qq --no-install-recommends tzdata-legacy && \
     truncate -s 0 /var/log/apt/* && \
     truncate -s 0 /var/log/dpkg.log
