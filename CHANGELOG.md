@@ -1,3 +1,9 @@
+## 0.5.3 (2026-03-31)
+
+### Fix
+
+- **Dockerfile**: fix healthcheck
+
 ## 0.5.2 (2025-11-14)
 
 ### Fix
