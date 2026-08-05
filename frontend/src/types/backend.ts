@@ -33,9 +33,7 @@ export type StatementFormatSettingsPDF = {
 };
 
 export type StatementFormatSettings =
-  | StatementFormatSettingsCSV
-  | StatementFormatSettingsXLSX
-  | StatementFormatSettingsPDF;
+  StatementFormatSettingsCSV | StatementFormatSettingsXLSX | StatementFormatSettingsPDF;
 
 export type ColumnRole =
   | 'date'
@@ -145,11 +143,7 @@ export type Currency = {
 
 export type TransactionState = 'enriched' | 'new' | 'matched' | 'annotated' | 'unmatched';
 export type TransactionType =
-  | 'withdrawal'
-  | 'transfer-in'
-  | 'transfer-out'
-  | 'deposit'
-  | 'reconciliation';
+  'withdrawal' | 'transfer-in' | 'transfer-out' | 'deposit' | 'reconciliation';
 
 export type TransactionCandidate = {
   description: string;
